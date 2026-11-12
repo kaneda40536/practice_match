@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}学校の削除｜練習試合調整支援システム{% endblock %}
+
+{% block content %}
+
+<div class="page-title">
+    <h2>学校の削除</h2>
+</div>
+
+<div class="form-container">
+    <p>「{{ object.name }}」を削除します。よろしいですか？</p>
+    <p>この学校に紐づく次のデータも、**あわせて削除されます**。元に戻せません。</p>
+    <ul>
+        <li>部活動：{{ club_count }}件</li>
+        <li>ログインアカウント：{{ account_count }}件</li>
+    </ul>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn--danger">削除する</button>
+        <a href="{% url 'school_list' %}" class="btn btn--secondary">キャンセル</a>
+    </form>
+</div>
+
+{% endblock %}

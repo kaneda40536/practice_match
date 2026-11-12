@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}学校情報管理｜練習試合調整支援システム{% endblock %}
+
+{% block content %}
+
+<div class="page-title">
+    <h2>学校情報管理</h2>
+    <p>各学校の基本情報を確認・編集します。学校の新規登録は「学校アカウント管理」から行います</p>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>学校名</th>
+                <th>地域</th>
+                <th>所在地</th>
+                <th>位置情報</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for school in schools %}
+                <tr>
+                    <td>{{ school.name }}</td>
+                    <td>{{ school.area.name|default:"—" }}</td>
+                    <td>
+                        {% if school.address %}
+                            {{ school.address }}<br>
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ school.address|urlencode }}" target="_blank" rel="noopener">地図で確認</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if school.latitude is not None %}
+                            <span class="status status--on">取得済み</span>
+                        {% else %}
+                            <span class="status status--off">未取得</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'school_edit' school.pk %}" class="btn">編集</a>
+                        <a href="{% url 'school_delete' school.pk %}" class="btn btn--danger">削除</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">まだ学校が登録されていません。</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="back-login">
+    <a href="{% url 'board_home' %}">← 管理メニューに戻る</a>
+</div>
+
+{% endblock %}

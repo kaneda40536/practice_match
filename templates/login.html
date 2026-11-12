@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>練習試合調整支援システム｜ログイン</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body class="login-page">
+
+<div class="login-wrapper">
+
+    <!-- 左側 -->
+    <div class="login-info">
+
+        <div class="school-logo">
+            <span>PM</span>
+        </div>
+
+        <p class="system-label">
+            PRACTICE MATCH COORDINATION
+        </p>
+
+        <h1>
+            練習試合調整支援<br>
+            システム
+        </h1>
+
+        <p class="login-description">
+            対戦相手探し・日程調整・会場選び・連絡を<br>
+            ひとつのシステムで行えます。
+        </p>
+
+        <div class="feature-list">
+            <div>✓ 対戦相手と共通候補日を提示</div>
+            <div>✓ 会場候補を距離から提案</div>
+            <div>✓ チャットで日程を相談</div>
+            <div>✓ 試合の予定と結果を記録</div>
+        </div>
+
+    </div>
+
+    <!-- 右側 -->
+    <div class="login-panel">
+
+        <div class="login-box">
+
+            <p class="login-heading">
+                LOGIN
+            </p>
+
+            <h2>
+                ログイン
+            </h2>
+
+            <p class="login-subtitle">
+                教育委員会から発行された学校IDとパスワードを入力してください
+            </p>
+
+            {% if error %}
+                <p class="login-error">{{ error }}</p>
+            {% endif %}
+
+            <form action="{% url 'login' %}" method="POST">
+
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="username">
+                        学校ID
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="学校IDを入力"
+                        >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">
+                        パスワード
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="パスワードを入力"
+                        >
+                </div>
+
+                <button type="submit" class="login-button">
+                    ログイン
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}対戦相手検索｜練習試合調整支援システム{% endblock %}
+
+{% block content %}
+
+<div class="page-title">
+    <h2>対戦相手検索</h2>
+    <p>自校の部活動を選ぶと、同じ競技・区分で、希望日が重なる相手校を探します</p>
+</div>
+
+{% if not my_clubs %}
+    <div class="card">
+        <p>部活動がまだ登録されていません。先に<a href="{% url 'my_club_list' %}">部活動管理</a>で登録してください。</p>
+    </div>
+{% else %}
+
+<div class="card">
+    <form method="get" class="filter-form">
+        <select name="club" required>
+            <option value="">部活動を選択</option>
+            {% for c in my_clubs %}
+                <option value="{{ c.pk }}"{% if selected_club and c.pk == selected_club.pk %} selected{% endif %}>{{ c.get_gender_display }}{{ c.sport.name }}部</option>
+            {% endfor %}
+        </select>
+
+        <select name="area">
+            <option value="">すべての地域</option>
+            {% for a in areas %}
+                <option value="{{ a.pk }}"{% if a.pk|stringformat:"s" == selected_area %} selected{% endif %}>{{ a.name }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">検索</button>
+    </form>
+</div>
+
+{% if selected_club %}
+
+    {% if not has_my_dates %}
+        <div class="card">
+            <p>この部活動には、これから先の希望日が登録されていません。先に<a href="{% url 'club_availability' selected_club.pk %}">希望日を登録</a>してください。</p>
+        </div>
+    {% else %}
+
+        <h3 class="result-title">共通の希望日がある相手校（{{ matches|length }}件）</h3>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>学校名</th>
+                        <th>地域</th>
+                        <th>距離（直線）</th>
+                        <th>共通の希望日</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in matches %}
+                        <tr>
+                            <td>{{ row.school.name }}</td>
+                            <td>{{ row.school.area.name|default:"—" }}</td>
+                            <td>{% if row.distance is not None %}{{ row.distance }} km{% else %}—{% endif %}</td>
+                            <td>
+                                <div class="date-chips">
+                                    {% for d in row.common|slice:":8" %}
+                                        <span class="date-chip">{{ d.date|date:"n/j（D）" }}{% if d.my_host or d.their_host %}<small>{% if d.my_host %}自校可{% endif %}{% if d.my_host and d.their_host %}・{% endif %}{% if d.their_host %}相手校可{% endif %}</small>{% endif %}</span>
+                                    {% endfor %}
+                                    {% if row.common|length > 8 %}
+                                        <span class="date-chip">ほか{{ row.common|length|add:"-8" }}日</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td><span class="status status--off">準備中</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">希望日が重なる相手校は、見つかりませんでした。</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="result-title">条件は合うが、希望日が重なっていない相手校（{{ others|length }}件）</h3>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>学校名</th>
+                        <th>地域</th>
+                        <th>距離（直線）</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in others %}
+                        <tr>
+                            <td>{{ row.school.name }}</td>
+                            <td>{{ row.school.area.name|default:"—" }}</td>
+                            <td>{% if row.distance is not None %}{{ row.distance }} km{% else %}—{% endif %}</td>
+                            <td><span class="status status--off">準備中</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">該当する相手校はありません。</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% endif %}
+
+{% endif %}
+
+{% endif %}
+
+<div class="back-login">
+    <a href="{% url 'teacher_home' %}">← 学校メニューに戻る</a>
+</div>
+
+{% endblock %}

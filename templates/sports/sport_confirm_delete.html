@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}競技の削除｜練習試合調整支援システム{% endblock %}
+
+{% block content %}
+
+<div class="page-title">
+    <h2>競技の削除</h2>
+</div>
+
+<div class="form-container">
+    <p>「{{ object.name }}」を削除します。よろしいですか？</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn--danger">削除する</button>
+        <a href="{% url 'sport_list' %}" class="btn btn--secondary">キャンセル</a>
+    </form>
+</div>
+
+{% endblock %}

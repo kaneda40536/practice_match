@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}部活動一覧｜練習試合調整支援システム{% endblock %}
+
+{% block content %}
+
+<div class="page-title">
+    <h2>部活動一覧</h2>
+    <p>各学校が登録した部活動を確認します</p>
+</div>
+
+<div class="card">
+    <form method="get" class="filter-form">
+        <select name="area">
+            <option value="">すべての地域</option>
+            {% for area in areas %}
+                <option value="{{ area.pk }}"{% if area.pk|stringformat:"s" == selected.area %} selected{% endif %}>{{ area.name }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="sport">
+            <option value="">すべての競技</option>
+            {% for sport in sports %}
+                <option value="{{ sport.pk }}"{% if sport.pk|stringformat:"s" == selected.sport %} selected{% endif %}>{{ sport.name }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="gender">
+            <option value="">すべての区分</option>
+            {% for value, label in genders %}
+                <option value="{{ value }}"{% if value == selected.gender %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">絞り込む</button>
+        <a href="{% url 'club_list' %}" class="btn btn--secondary">解除</a>
+    </form>
+
+    <p class="count-note">{{ clubs|length }}件</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>学校名</th>
+                <th>地域</th>
+                <th>競技種目</th>
+                <th>区分</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for club in clubs %}
+                <tr>
+                    <td>{{ club.school.name }}</td>
+                    <td>{{ club.school.area.name|default:"—" }}</td>
+                    <td>{{ club.sport.name }}</td>
+                    <td>{{ club.get_gender_display }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">該当する部活動がありません。</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="back-login">
+    <a href="{% url 'board_home' %}">← 管理メニューに戻る</a>
+</div>
+
+{% endblock %}
