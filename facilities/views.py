@@ -44,6 +44,12 @@ class FacilityDeleteView(BoardRequiredMixin, DeleteView):
     template_name = "facilities/facility_confirm_delete.html"
     success_url = reverse_lazy("facility_list")
 
+    def get_context_data(self, **kwargs):
+        # 会場として使われている施設は削除できないので、確認画面であらかじめ知らせる
+        context = super().get_context_data(**kwargs)
+        context["match_count"] = self.object.practicematch_set.count()
+        return context
+
     def form_valid(self, form):
         name = self.object.name
         try:

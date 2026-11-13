@@ -1,0 +1,38 @@
+{# 対戦相手検索の結果カード。row = {club, school, distance, common} #}
+<article class="opponent-card">
+    <div class="opponent-card-top">
+        <span class="opponent-card-label">対戦候補</span>
+        <span class="opponent-card-sport">{{ row.club.get_gender_display }}{{ row.club.sport.name }}</span>
+    </div>
+
+    <h3>{{ row.school.name }}</h3>
+    <h4>{{ row.club.get_gender_display }}{{ row.club.sport.name }}部</h4>
+
+    <div class="opponent-card-info">
+        <div>
+            <span class="info-label">地域</span>
+            <span>{{ row.school.area.name|default:"—" }}</span>
+        </div>
+        <div>
+            <span class="info-label">距離</span>
+            <span>{% if row.distance is not None %}約 {{ row.distance }} km（直線）{% else %}—{% endif %}</span>
+        </div>
+        {% if show_dates %}
+            <div class="opponent-card-dates">
+                <span class="info-label">共通日</span>
+                <div class="date-chips">
+                    {% for d in row.common|slice:":6" %}
+                        <span class="date-chip">{{ d.date|date:"n/j（D）" }}{% if d.my_host or d.their_host %}<small>{% if d.my_host %}自校可{% endif %}{% if d.my_host and d.their_host %}・{% endif %}{% if d.their_host %}相手校可{% endif %}</small>{% endif %}</span>
+                    {% endfor %}
+                    {% if row.common|length > 6 %}
+                        <span class="date-chip">ほか{{ row.common|length|add:"-6" }}日</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <a href="{% url 'match_request' selected_club.pk row.club.pk %}" class="opponent-detail-button">
+        日程と会場を選んで申し込む →
+    </a>
+</article>

@@ -2,64 +2,78 @@
 
 {% block title %}申し込んだ試合｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}申し込んだ試合{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
-    <h2>申し込んだ試合</h2>
-    <p>自校から申し込んだ練習試合の状況を確認します</p>
+<div class="applied-heading">
+    <div>
+        <p class="applied-eyebrow">MY APPLICATIONS</p>
+        <h2>申し込んだ試合</h2>
+        <p>他校へ申し込んだ練習試合の状況を確認できます。</p>
+    </div>
 </div>
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>日程</th>
-                <th>相手校</th>
-                <th>会場</th>
-                <th>状態</th>
-                <th>申込日</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for m in matches %}
-                <tr>
-                    <td>{{ m.date|date:"Y年n月j日（D）" }}</td>
-                    <td>{{ m.opponent_club }}</td>
-                    <td>{{ m.venue_name }}</td>
-                    <td>
-                        {% if m.status == "pending" %}
-                            <span class="status status--wait">{{ m.get_status_display }}</span>
-                        {% elif m.status == "confirmed" %}
-                            <span class="status status--on">{{ m.get_status_display }}</span>
-                        {% else %}
-                            <span class="status status--off">{{ m.get_status_display }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ m.created_at|date:"n/j H:i" }}</td>
-                    <td>
-                        {% if m.status == "pending" %}
-                            <form method="post" action="{% url 'match_withdraw' m.pk %}" class="inline-form"
-                                  onsubmit="return confirm('この申し込みを取り下げます。よろしいですか？');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn--danger">取り下げ</button>
-                            </form>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6">まだ申し込んだ試合はありません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<section class="applied-section">
+    <div class="applied-section-heading">
+        <div>
+            <h3>申し込み状況一覧</h3>
+            <p>相手校の返事を待っている申し込みは、取り下げることができます。</p>
+        </div>
+    </div>
 
-<div class="back-login">
-    <a href="{% url 'teacher_home' %}">← 学校メニューに戻る</a>
+    {% if matches %}
+        <div class="applied-table-wrap">
+            <table class="applied-table">
+                <thead>
+                    <tr>
+                        <th>相手校</th>
+                        <th>自校の部活動</th>
+                        <th>試合予定日</th>
+                        <th>会場</th>
+                        <th>状態</th>
+                        <th>申込日時</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in matches %}
+                        <tr>
+                            <td>{{ match.opponent_club.school.name }}</td>
+                            <td>{{ match.applicant_club.get_gender_display }}{{ match.opponent_club.sport.name }}部</td>
+                            <td class="applied-date">{{ match.date|date:"Y年n月j日（D）" }}</td>
+                            <td>{{ match.venue_name }}</td>
+                            <td>
+                                <span class="applied-status {{ match.status }}">{{ match.get_status_display }}</span>
+                            </td>
+                            <td>{{ match.created_at|date:"n/j H:i" }}</td>
+                            <td>
+                                {% if match.status == "pending" %}
+                                    <form method="post" action="{% url 'match_withdraw' match.pk %}"
+                                          onsubmit="return confirm('この申し込みを取り下げます。よろしいですか？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-button danger">取り下げ</button>
+                                    </form>
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="applied-empty">
+            <div class="applied-empty-icon">📋</div>
+            <h4>申し込みはありません</h4>
+            <p>現在、申し込んだ試合はありません。<a href="{% url 'opponent_search' %}">対戦相手を検索</a>して申し込めます。</p>
+        </div>
+    {% endif %}
+</section>
+
+<div class="applied-back">
+    <a href="{% url 'teacher_home' %}">← 学校ホームに戻る</a>
 </div>
 
 {% endblock %}

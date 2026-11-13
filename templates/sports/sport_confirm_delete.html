@@ -2,20 +2,43 @@
 
 {% block title %}競技の削除｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}競技管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<div class="account-form-heading">
     <h2>競技の削除</h2>
+    <p>以下の競技を削除してもよろしいですか？</p>
 </div>
 
-<div class="form-container">
-    <p>「{{ object.name }}」を削除します。よろしいですか？</p>
+<div class="account-form-card">
+    {% if reasons %}
+        <div class="confirm-warning">
+            <strong>この競技は削除できません。</strong>
+            <ul>
+                {% for reason in reasons %}
+                    <li>{{ reason }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <div class="confirm-warning">この操作は取り消すことができません。</div>
+    {% endif %}
 
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn--danger">削除する</button>
-        <a href="{% url 'sport_list' %}" class="btn btn--secondary">キャンセル</a>
-    </form>
+    <dl class="confirm-list">
+        <dt>競技名</dt>
+        <dd>{{ object.name }}</dd>
+    </dl>
+
+    <div class="account-form-actions">
+        <a href="{% url 'sport_list' %}" class="admin-cancel-button">キャンセル</a>
+        {% if not reasons %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="admin-delete-button">削除する</button>
+            </form>
+        {% endif %}
+    </div>
 </div>
 
 {% endblock %}

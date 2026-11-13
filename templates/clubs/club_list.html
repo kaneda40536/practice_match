@@ -2,70 +2,101 @@
 
 {% block title %}部活動一覧｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}部活動一覧{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
-    <h2>部活動一覧</h2>
-    <p>各学校が登録した部活動を確認します</p>
+<div class="welcome-area">
+    <div>
+        <h2>登録済み部活動一覧</h2>
+        <p>各学校が登録した部活動と、その競技情報を確認できます。</p>
+    </div>
 </div>
 
-<div class="card">
-    <form method="get" class="filter-form">
-        <select name="area">
+<div class="account-summary">
+    <div>
+        <span class="summary-label">REGISTERED CLUBS</span>
+        <div class="summary-number">
+            {{ clubs|length }}
+            <span>部活動</span>
+        </div>
+    </div>
+</div>
+
+<div class="admin-table-card">
+    <div class="table-card-header">
+        <div>
+            <h3>部活動一覧</h3>
+            <p>地域・競技・区分で絞り込めます。</p>
+        </div>
+    </div>
+
+    <form method="get" class="filter-bar">
+        <select name="area" aria-label="地域">
             <option value="">すべての地域</option>
             {% for area in areas %}
                 <option value="{{ area.pk }}"{% if area.pk|stringformat:"s" == selected.area %} selected{% endif %}>{{ area.name }}</option>
             {% endfor %}
         </select>
 
-        <select name="sport">
+        <select name="sport" aria-label="競技">
             <option value="">すべての競技</option>
             {% for sport in sports %}
                 <option value="{{ sport.pk }}"{% if sport.pk|stringformat:"s" == selected.sport %} selected{% endif %}>{{ sport.name }}</option>
             {% endfor %}
         </select>
 
-        <select name="gender">
+        <select name="gender" aria-label="区分">
             <option value="">すべての区分</option>
             {% for value, label in genders %}
                 <option value="{{ value }}"{% if value == selected.gender %} selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
 
-        <button type="submit">絞り込む</button>
-        <a href="{% url 'club_list' %}" class="btn btn--secondary">解除</a>
+        <button type="submit" class="admin-primary-button">絞り込む</button>
+        <a href="{% url 'club_list' %}" class="admin-cancel-button">解除</a>
     </form>
 
-    <p class="count-note">{{ clubs|length }}件</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th>学校名</th>
-                <th>地域</th>
-                <th>競技種目</th>
-                <th>区分</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for club in clubs %}
-                <tr>
-                    <td>{{ club.school.name }}</td>
-                    <td>{{ club.school.area.name|default:"—" }}</td>
-                    <td>{{ club.sport.name }}</td>
-                    <td>{{ club.get_gender_display }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4">該当する部活動がありません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if clubs %}
+        <div class="admin-table-wrap">
+            <table class="admin-data-table club-data-table">
+                <thead>
+                    <tr>
+                        <th>学校名</th>
+                        <th>地域</th>
+                        <th>部活動名</th>
+                        <th>競技</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for club in clubs %}
+                        <tr>
+                            <td><span class="club-school-name">{{ club.school.name }}</span></td>
+                            <td>
+                                {% if club.school.area %}
+                                    <span class="region-label">{{ club.school.area.name }}</span>
+                                {% else %}
+                                    <span class="unregistered">—</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="club-name">{{ club.get_gender_display }}{{ club.sport.name }}部</span></td>
+                            <td><span class="club-sport-label">{{ club.sport.name }}</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="club-empty">
+            <div class="club-empty-icon">▦</div>
+            <h3>該当する部活動がありません</h3>
+            <p>学校側から部活動が登録されると、ここに表示されます。</p>
+        </div>
+    {% endif %}
 </div>
 
-<div class="back-login">
-    <a href="{% url 'board_home' %}">← 管理メニューに戻る</a>
+<div class="admin-back-area">
+    <a href="{% url 'board_home' %}" class="admin-back-link">← 管理者ホームに戻る</a>
 </div>
 
 {% endblock %}

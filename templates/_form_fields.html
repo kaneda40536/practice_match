@@ -1,0 +1,56 @@
+{% comment %}
+    フォームの入力欄を、デザインの account-form-group の形で並べる部品。
+    使い方：{% include "_form_fields.html" with form=form %}
+      ・パスワード欄には「表示」ボタンが付く
+      ・チェックボックスの一覧（対応競技など）は、タグのような見た目で並ぶ
+{% endcomment %}
+
+{% for error in form.non_field_errors %}
+    <div class="account-form-error">{{ error }}</div>
+{% endfor %}
+
+{% for field in form %}
+    <div class="account-form-group">
+        {% if field.widget_type == "checkboxselectmultiple" %}
+            <label>{{ field.label }}{% if field.field.required %} <span class="required-mark">必須</span>{% endif %}</label>
+            <div class="facility-sport-checkbox-list">
+                {% for option in field %}
+                    <label class="facility-sport-checkbox">
+                        {{ option.tag }}
+                        <span>{{ option.choice_label }}</span>
+                    </label>
+                {% empty %}
+                    <p class="account-form-note">選択できる項目がまだ登録されていません。</p>
+                {% endfor %}
+            </div>
+        {% else %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required-mark">必須</span>{% endif %}</label>
+            {% if field.widget_type == "password" %}
+                <div class="password-input-wrap">
+                    {{ field }}
+                    <button type="button" class="password-toggle" data-toggle-password="{{ field.id_for_label }}">表示</button>
+                </div>
+            {% else %}
+                {{ field }}
+            {% endif %}
+        {% endif %}
+
+        {% if field.help_text %}
+            <p class="account-form-note">{{ field.help_text|safe }}</p>
+        {% endif %}
+        {% for error in field.errors %}
+            <p class="field-error">{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endfor %}
+
+<script>
+    document.querySelectorAll("[data-toggle-password]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var input = document.getElementById(button.dataset.togglePassword);
+            var hidden = input.type === "password";
+            input.type = hidden ? "text" : "password";
+            button.textContent = hidden ? "隠す" : "表示";
+        });
+    });
+</script>

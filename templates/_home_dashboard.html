@@ -1,0 +1,53 @@
+{% comment %}
+    ホーム画面（教育委員会・顧問 共通）の、件数カードとメニューカード。
+    stats      : ビューから渡す件数の一覧
+    nav_sections : accounts/menus.py のメニュー（context_processors.navigation が渡す）
+{% endcomment %}
+
+<!-- 件数 -->
+<div class="dashboard-stats">
+    {% for stat in stats %}
+        <div class="dashboard-stat-card">
+            <div class="stat-card-top">
+                <span>{{ stat.label }}</span>
+                <div class="stat-icon stat-{{ stat.color }}">{{ stat.icon }}</div>
+            </div>
+            <div class="stat-number">
+                {{ stat.value }}<span>{{ stat.unit }}</span>
+            </div>
+            <p>{{ stat.note }}</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- メニュー -->
+{% for section in nav_sections %}
+    <div class="dashboard-menu-heading"{% if not forloop.first %} style="margin-top: 38px;"{% endif %}>
+        <h2>{{ section.title }}</h2>
+        <p>{{ section.description }}</p>
+    </div>
+
+    <div class="admin-menu-grid">
+        {% for item in section.items %}
+            {% if item.url %}
+                <a href="{{ item.url }}" class="admin-menu-card">
+                    <div class="menu-icon icon-{{ item.color }}">{{ item.icon }}</div>
+                    <div class="menu-card-text">
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.description }}</p>
+                    </div>
+                    <span class="menu-arrow">→</span>
+                </a>
+            {% else %}
+                <div class="admin-menu-card is-disabled">
+                    <div class="menu-icon icon-{{ item.color }}">{{ item.icon }}</div>
+                    <div class="menu-card-text">
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.description }}</p>
+                    </div>
+                    <span class="menu-soon">準備中</span>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endfor %}

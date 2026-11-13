@@ -1,37 +1,53 @@
 {% extends "base.html" %}
 
-{% block title %}学校情報｜練習試合調整支援システム{% endblock %}
+{% block title %}学校情報管理｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}学校情報管理{% endblock %}
 
 {% block content %}
 
-<div class="page-title">
+<section class="school-intro">
+    <span class="english-label">SCHOOL INFORMATION</span>
     <h2>学校情報管理</h2>
-    <p>自校の基本情報を確認します</p>
-</div>
+    <p>自校の基本情報を確認できます。</p>
+</section>
 
-<div class="card">
-    <dl class="info-list">
-        <dt>学校名</dt>
-        <dd>{{ school.name }}</dd>
+<section class="profile-section">
+    <div class="profile-section-heading">
+        <div class="profile-heading-icon">▣</div>
+        <div>
+            <h3>基本情報</h3>
+            <p>教育委員会に登録されている自校の情報です。</p>
+        </div>
+    </div>
 
-        <dt>地域</dt>
-        <dd>{{ school.area.name|default:"—" }}</dd>
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="info-item-label">学校名</span>
+            <span class="info-item-value">{{ school.name }}</span>
+        </div>
 
-        <dt>所在地</dt>
-        <dd>
+        <div class="info-item">
+            <span class="info-item-label">所属地域</span>
+            <span class="info-item-value">{{ school.area.name|default:"—" }}</span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-item-label">所在地</span>
+            <span class="info-item-value">{{ school.address|default:"—" }}</span>
             {% if school.address %}
-                {{ school.address }}<br>
-                <a href="https://www.google.com/maps/search/?api=1&query={{ school.address|urlencode }}" target="_blank" rel="noopener">地図で確認</a>
-            {% else %}
-                —
+                <br>
+                <a href="https://www.google.com/maps/search/?api=1&query={{ school.address|urlencode }}"
+                   target="_blank" rel="noopener">地図で確認 ↗</a>
             {% endif %}
-        </dd>
-    </dl>
-    <p class="help-text">学校情報を変更したいときは、教育委員会にご連絡ください。</p>
-</div>
+        </div>
+    </div>
 
-<div class="back-login">
-    <a href="{% url 'teacher_home' %}">← 学校メニューに戻る</a>
+    <p class="notice-box">学校情報を変更したいときは、教育委員会にご連絡ください。</p>
+</section>
+
+<div class="profile-actions">
+    <a href="{% url 'teacher_home' %}" class="profile-back-button">← 学校ホームに戻る</a>
 </div>
 
 {% endblock %}

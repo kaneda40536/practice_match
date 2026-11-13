@@ -2,49 +2,129 @@
 
 {% block title %}部活動管理｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}部活動管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<section class="school-intro">
+    <span class="english-label">CLUB MANAGEMENT</span>
     <h2>部活動管理</h2>
-    <p>{{ user.school.name }}の部活動を登録・確認します</p>
-</div>
+    <p>{{ user.school.name }}の部活動を登録・確認できます。練習試合をしたい日（希望日）も、部活動ごとに登録します。</p>
+</section>
 
-<div class="card">
-    <div class="list-header">
-        <a href="{% url 'my_club_add' %}" class="btn">部活動を追加</a>
+<!-- 部活動登録 -->
+<section class="club-section">
+
+    <div class="club-section-heading">
+        <div class="club-heading-icon green">＋</div>
+        <div>
+            <h3>部活動の登録</h3>
+            <p>競技と区分を選んで、新しい部活動を登録できます。</p>
+        </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>競技種目</th>
-                <th>区分</th>
-                <th>登録中の希望日</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for club in clubs %}
-                <tr>
-                    <td>{{ club.sport.name }}</td>
-                    <td>{{ club.get_gender_display }}</td>
-                    <td>{{ club.date_count }}件</td>
-                    <td>
-                        <a href="{% url 'club_availability' club.pk %}" class="btn">希望日</a>
-                        <a href="{% url 'my_club_delete' club.pk %}" class="btn btn--danger">削除</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4">まだ部活動が登録されていません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+    {% if not form.fields.sport.queryset.exists %}
+        <div class="club-error">競技がまだ登録されていません。教育委員会にお問い合わせください。</div>
+    {% endif %}
 
-<div class="back-login">
-    <a href="{% url 'teacher_home' %}">← 学校メニューに戻る</a>
+    {% for error in form.non_field_errors %}
+        <div class="club-error">{{ error }}</div>
+    {% endfor %}
+
+    <form method="post" action="{% url 'my_club_add' %}" class="club-register-form">
+        {% csrf_token %}
+
+        <div class="club-register-fields">
+            <div class="club-field">
+                <label for="{{ form.sport.id_for_label }}">{{ form.sport.label }}</label>
+                {{ form.sport }}
+                {% for error in form.sport.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="club-field">
+                <label for="{{ form.gender.id_for_label }}">{{ form.gender.label }}</label>
+                {{ form.gender }}
+                {% for error in form.gender.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="club-register-actions">
+            <button type="submit" class="club-register-button">＋ 部活動を登録する</button>
+        </div>
+    </form>
+
+</section>
+
+<!-- 登録済み部活動 -->
+<section class="club-section">
+
+    <div class="club-section-heading">
+        <div class="club-heading-icon">▤</div>
+        <div>
+            <h3>登録済みの部活動</h3>
+            <p>「希望日」から、練習試合をしたい日を登録してください。対戦相手の検索で使われます。</p>
+        </div>
+    </div>
+
+    {% if clubs %}
+
+        <div class="club-table-wrapper">
+            <table class="club-table">
+                <thead>
+                    <tr>
+                        <th>部活動名</th>
+                        <th>競技</th>
+                        <th>登録中の希望日</th>
+                        <th class="club-action-column">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for club in clubs %}
+                        <tr>
+                            <td class="club-name-cell">{{ club.get_gender_display }}{{ club.sport.name }}部</td>
+                            <td><span class="club-sport-label">{{ club.sport.name }}</span></td>
+                            <td>
+                                {% if club.date_count %}
+                                    {{ club.date_count }}日
+                                {% else %}
+                                    <span class="muted">未登録</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="club-actions">
+                                    <a href="{% url 'club_availability' club.pk %}" class="club-edit-button">希望日</a>
+
+                                    <form method="post" action="{% url 'my_club_delete' club.pk %}"
+                                          onsubmit="return confirm('「{{ club.get_gender_display }}{{ club.sport.name }}部」を削除しますか？\n登録した希望日や、この部活動の練習試合の申し込みも削除されます。');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="club-delete-button">削除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% else %}
+
+        <div class="club-empty">
+            <div class="club-empty-icon">▤</div>
+            <p>登録されている部活動はありません。</p>
+            <span>上のフォームから部活動を登録できます。</span>
+        </div>
+
+    {% endif %}
+
+</section>
+
+<div class="club-back-area">
+    <a href="{% url 'teacher_home' %}" class="club-back-button">← 学校ホームに戻る</a>
 </div>
 
 {% endblock %}

@@ -1,30 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}競技の{% if object %}編集{% else %}追加{% endif %}｜練習試合調整支援システム{% endblock %}
+{% block title %}競技の{% if object %}編集{% else %}登録{% endif %}｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}競技管理{% endblock %}
 
 {% block content %}
 
-<div class="page-title">
-    <h2>競技の{% if object %}編集{% else %}追加{% endif %}</h2>
+<div class="account-form-heading">
+    <h2>{% if object %}競技情報の編集{% else %}新しい競技の登録{% endif %}</h2>
+    <p>システムで使用する競技の情報を入力してください。</p>
 </div>
 
-<div class="form-container">
-    <form method="post" class="edit-form">
+<div class="account-form-card">
+    <form method="post">
         {% csrf_token %}
 
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% for error in field.errors %}
-                    <p class="field-error">{{ error }}</p>
-                {% endfor %}
-            </div>
-        {% endfor %}
+        {% include "_form_fields.html" with form=form %}
 
-        <button type="submit">保存</button>
-        <a href="{% url 'sport_list' %}" class="btn btn--secondary">キャンセル</a>
+        <div class="account-form-actions">
+            <a href="{% url 'sport_list' %}" class="account-back-button">キャンセル</a>
+            <button type="submit" class="account-save-button">保存する</button>
+        </div>
     </form>
+</div>
+
+<div class="admin-back-area">
+    <a href="{% url 'sport_list' %}" class="admin-back-link">← 競技一覧に戻る</a>
 </div>
 
 {% endblock %}

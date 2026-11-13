@@ -2,77 +2,116 @@
 
 {% block title %}希望日の登録｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}部活動管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<section class="school-intro">
+    <span class="english-label">AVAILABLE DATES</span>
     <h2>希望日の登録</h2>
-    <p>{{ club }}</p>
-</div>
+    <p>{{ club }} が練習試合をしたい日を、1日ずつ登録します。日付が過ぎると一覧には表示されなくなります。</p>
+</section>
 
-<div class="form-container">
-    <form method="post" class="availability-form">
-        {% csrf_token %}
+<!-- 希望日の追加 -->
+<section class="club-section">
 
+    <div class="club-section-heading">
+        <div class="club-heading-icon green">＋</div>
         <div>
-            <label for="{{ form.date.id_for_label }}">練習試合をしたい日</label>
-            {{ form.date }}
+            <h3>希望日の追加</h3>
+            <p>自校で相手を迎えられる日は、チェックを付けてください。会場の候補に「自校」が出るようになります。</p>
         </div>
-
-        <label class="check-label">
-            {{ form.can_host }} 自校で相手を迎えられる日
-        </label>
-
-        <button type="submit">追加</button>
-    </form>
+    </div>
 
     {% for error in form.non_field_errors %}
-        <p class="field-error">{{ error }}</p>
-    {% endfor %}
-    {% for error in form.date.errors %}
-        <p class="field-error">{{ error }}</p>
+        <div class="club-error">{{ error }}</div>
     {% endfor %}
 
-    <p class="help-text">練習試合をしたい日を、1日ずつ追加してください。日付が過ぎると、一覧には表示されなくなります。</p>
-</div>
+    <form method="post" class="club-register-form">
+        {% csrf_token %}
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>日付</th>
-                <th>自校で受け入れ</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for availability in availabilities %}
-                <tr>
-                    <td>{{ availability.date|date:"Y年n月j日（D）" }}</td>
-                    <td>
-                        {% if availability.can_host %}
-                            <span class="status status--on">受け入れ可</span>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td>
-                        <form method="post" action="{% url 'availability_delete' availability.pk %}" class="inline-form">
-                            {% csrf_token %}
-                            <button type="submit" class="btn--danger">削除</button>
-                        </form>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="3">まだ希望日が登録されていません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+        <div class="club-register-fields">
+            <div class="club-field">
+                <label for="{{ form.date.id_for_label }}">練習試合をしたい日</label>
+                {{ form.date }}
+                {% for error in form.date.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-<div class="back-login">
-    <a href="{% url 'my_club_list' %}">← 部活動管理に戻る</a>
+            <div class="club-field">
+                <label>受け入れ</label>
+                <label class="check-field">
+                    {{ form.can_host }} 自校で相手を迎えられる日
+                </label>
+            </div>
+        </div>
+
+        <div class="club-register-actions">
+            <button type="submit" class="club-register-button">＋ 希望日を追加する</button>
+        </div>
+    </form>
+
+</section>
+
+<!-- 登録済みの希望日 -->
+<section class="club-section">
+
+    <div class="club-section-heading">
+        <div class="club-heading-icon">▦</div>
+        <div>
+            <h3>登録済みの希望日</h3>
+            <p>今日以降の希望日の一覧です。</p>
+        </div>
+    </div>
+
+    {% if availabilities %}
+        <div class="club-table-wrapper">
+            <table class="club-table">
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>自校で受け入れ</th>
+                        <th class="club-action-column">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for availability in availabilities %}
+                        <tr>
+                            <td class="club-name-cell">{{ availability.date|date:"Y年n月j日（D）" }}</td>
+                            <td>
+                                {% if availability.can_host %}
+                                    <span class="received-status confirmed">受け入れ可</span>
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="club-actions">
+                                    <form method="post" action="{% url 'availability_delete' availability.pk %}"
+                                          onsubmit="return confirm('この希望日を削除しますか？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="club-delete-button">削除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="club-empty">
+            <div class="club-empty-icon">▦</div>
+            <p>まだ希望日が登録されていません。</p>
+            <span>上のフォームから追加してください。</span>
+        </div>
+    {% endif %}
+
+</section>
+
+<div class="club-back-area">
+    <a href="{% url 'my_club_list' %}" class="club-back-button">← 部活動管理に戻る</a>
 </div>
 
 {% endblock %}

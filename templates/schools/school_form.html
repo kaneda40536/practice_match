@@ -2,31 +2,25 @@
 
 {% block title %}学校情報の編集｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}学校情報管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<div class="account-form-heading">
     <h2>学校情報の編集</h2>
+    <p>「{{ object.name }}」の基本情報を編集します。</p>
 </div>
 
-<div class="form-container">
-    <form method="post" class="edit-form">
+<div class="account-form-card">
+    <form method="post">
         {% csrf_token %}
 
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                    <div class="help-text">{{ field.help_text|safe }}</div>
-                {% endif %}
-                {% for error in field.errors %}
-                    <p class="field-error">{{ error }}</p>
-                {% endfor %}
-            </div>
-        {% endfor %}
+        {% include "_form_fields.html" with form=form %}
 
-        <button type="submit">保存</button>
-        <a href="{% url 'school_list' %}" class="btn btn--secondary">キャンセル</a>
+        <div class="account-form-actions">
+            <a href="{% url 'school_list' %}" class="account-back-button">一覧に戻る</a>
+            <button type="submit" class="account-save-button">保存する</button>
+        </div>
     </form>
 </div>
 

@@ -1,4 +1,12 @@
 {% load static %}
+{% comment %}
+    すべての画面が extends する共通の枠（左サイドバー＋上部ヘッダー）。
+    教育委員会・顧問のどちらも、この1つのファイルを使います。
+    サイドバーのメニューや表示名は accounts/context_processors.py の navigation が渡します。
+    メニューの中身を変えたいときは accounts/menus.py を編集してください。
+
+    各画面で使えるブロック：title / heading / body_class / content
+{% endcomment %}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,106 +14,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}練習試合調整支援システム{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    {% if user.is_superuser or user.role == "board" %}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-        <link rel="stylesheet" href="{% static 'css/board.css' %}">
-    {% endif %}
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body>
+<body class="admin-dashboard {% block body_class %}{% endblock %}">
 
-{% if user.is_superuser or user.role == "board" %}
+    <!-- 左側サイドバー -->
+    <aside class="admin-sidebar">
 
-<div class="board-layout">
-
-    <aside class="board-sidebar">
-        <div class="board-brand">
-            <div class="board-brand-logo">M</div>
-            <div class="board-brand-text">
+        <div class="sidebar-brand">
+            <div class="brand-icon">{{ nav_brand_icon }}</div>
+            <div>
                 <strong>練習試合調整</strong>
-                <span>ADMIN SYSTEM</span>
+                <span>{{ nav_brand_label }}</span>
             </div>
         </div>
 
-        <p class="board-nav-label">MAIN MENU</p>
+        <nav class="sidebar-nav">
 
-        <nav class="board-nav">
-            <a href="{% url 'board_home' %}"
-               class="board-nav-item{% if request.resolver_match.url_name == 'board_home' %} is-active{% endif %}">
-                <i class="bi bi-house-door-fill"></i><span>ホーム</span>
-            </a>
-            <a href="{% url 'school_account_list' %}"
-               class="board-nav-item{% if '/accounts/board/school-accounts/' in request.path %} is-active{% endif %}">
-                <i class="bi bi-people-fill"></i><span>学校アカウント管理</span>
-            </a>
-            <a href="{% url 'school_list' %}"
-               class="board-nav-item{% if '/schools/manage/' in request.path %} is-active{% endif %}">
-                <i class="bi bi-building-fill"></i><span>学校情報管理</span>
-            </a>
-            <a href="{% url 'sport_list' %}"
-               class="board-nav-item{% if '/schools/sports/' in request.path %} is-active{% endif %}">
-                <i class="bi bi-dribbble"></i><span>競技管理</span>
-            </a>
-            <a href="{% url 'club_list' %}"
-               class="board-nav-item{% if '/schools/clubs/' in request.path %} is-active{% endif %}">
-                <i class="bi bi-grid-fill"></i><span>部活動一覧</span>
-            </a>
-            <a href="{% url 'facility_list' %}"
-               class="board-nav-item{% if '/facilities/' in request.path %} is-active{% endif %}">
-                <i class="bi bi-geo-alt-fill"></i><span>施設情報管理</span>
-            </a>
-            <div class="board-nav-divider"></div>
+            {% for section in nav_sections %}
+                <div class="sidebar-label">{{ section.label }}</div>
 
-            <a href="{% url 'logout' %}" class="board-nav-item">
-                <i class="bi bi-box-arrow-right"></i><span>ログアウト</span>
-            </a>
+                {% if forloop.first %}
+                    <a href="{{ nav_home_url }}" class="sidebar-link{% if nav_is_home %} active{% endif %}">
+                        <span class="nav-icon">⌂</span>
+                        <span>ホーム</span>
+                    </a>
+                {% endif %}
+
+                {% for item in section.items %}
+                    {% if item.url %}
+                        <a href="{{ item.url }}" class="sidebar-link{% if item.active %} active{% endif %}">
+                            <span class="nav-icon">{{ item.icon }}</span>
+                            <span>{{ item.title }}</span>
+                        </a>
+                    {% else %}
+                        <span class="sidebar-link is-disabled" title="準備中">
+                            <span class="nav-icon">{{ item.icon }}</span>
+                            <span>{{ item.title }}</span>
+                            <span class="sidebar-soon">準備中</span>
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+
         </nav>
+
+        <div class="sidebar-bottom">
+            <a href="{% url 'logout' %}" class="sidebar-logout">
+                <span class="nav-icon">↪</span>
+                ログアウト
+            </a>
+        </div>
+
     </aside>
 
-    <div class="board-main">
+    <!-- メインエリア -->
+    <main class="admin-main">
 
-        <div class="board-topbar">
+        <header class="admin-topbar">
             <div>
-                <p class="board-topbar-label">ADMINISTRATION</p>
-                <h1 class="board-topbar-title">{% block heading %}{% endblock %}</h1>
+                <span class="topbar-label">{{ nav_portal_label }}</span>
+                <h1>{% block heading %}{% endblock %}</h1>
             </div>
-            <div class="board-user">
-                <span class="board-user-avatar">{{ user.username|first|upper }}</span>
-                <span>管理者</span>
+
+            <div class="admin-user">
+                <span class="user-icon">{{ nav_user_name|first }}</span>
+                <span>{{ nav_user_name }}</span>
             </div>
-        </div>
+        </header>
 
-        <div class="board-content">
+        <section class="admin-content">
 
-{% else %}
+            {% if messages %}
+                <div class="flash-list">
+                    {% for message in messages %}
+                        <p class="flash flash--{{ message.tags }}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
-<header>
-    <h1>練習試合調整支援システム</h1>
-</header>
+            {% block content %}{% endblock %}
 
-<div class="page">
+        </section>
 
-{% endif %}
+        <footer class="admin-footer">
+            練習試合調整支援システム
+        </footer>
 
-    {% for message in messages %}
-        <p class="message message--{{ message.tags }}">{{ message }}</p>
-    {% endfor %}
-
-    {% block content %}{% endblock %}
-
-{% if user.is_superuser or user.role == "board" %}
-
-        </div>
-
-        <div class="board-footer">練習試合調整支援システム</div>
-
-    </div>
-</div>
-
-{% else %}
-
-</div>
-
-{% endif %}
+    </main>
 
 </body>
 </html>

@@ -2,120 +2,135 @@
 
 {% block title %}対戦相手検索｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}対戦相手検索{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
-    <h2>対戦相手検索</h2>
-    <p>自校の部活動を選ぶと、同じ競技・区分で、希望日が重なる相手校を探します</p>
-</div>
+<section class="school-intro">
+    <span class="english-label">OPPONENT SEARCH</span>
+    <h2>対戦相手の検索</h2>
+    <p>自校の部活動を選ぶと、同じ競技・区分で、希望日が重なる相手校を探します。</p>
+</section>
 
-{% if not my_clubs %}
-    <div class="card">
-        <p>部活動がまだ登録されていません。先に<a href="{% url 'my_club_list' %}">部活動管理</a>で登録してください。</p>
+<!-- 検索フォーム -->
+<section class="opponent-section">
+    <div class="opponent-section-heading">
+        <div class="opponent-heading-icon">⌕</div>
+        <div>
+            <h3>検索条件</h3>
+            <p>対戦相手を探したい自校の部活動と、地域を選択してください。</p>
+        </div>
     </div>
-{% else %}
 
-<div class="card">
-    <form method="get" class="filter-form">
-        <select name="club" required>
-            <option value="">部活動を選択</option>
-            {% for c in my_clubs %}
-                <option value="{{ c.pk }}"{% if selected_club and c.pk == selected_club.pk %} selected{% endif %}>{{ c.get_gender_display }}{{ c.sport.name }}部</option>
-            {% endfor %}
-        </select>
+    {% if my_clubs %}
+        <form method="get" class="opponent-search-form">
+            <div class="opponent-select-field">
+                <label for="club">自校の部活動</label>
+                <select name="club" id="club" required>
+                    <option value="">部活動を選択してください</option>
+                    {% for c in my_clubs %}
+                        <option value="{{ c.pk }}"{% if selected_club and c.pk == selected_club.pk %} selected{% endif %}>
+                            {{ c.get_gender_display }}{{ c.sport.name }}部
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <select name="area">
-            <option value="">すべての地域</option>
-            {% for a in areas %}
-                <option value="{{ a.pk }}"{% if a.pk|stringformat:"s" == selected_area %} selected{% endif %}>{{ a.name }}</option>
-            {% endfor %}
-        </select>
+            <div class="opponent-select-field">
+                <label for="area">地域</label>
+                <select name="area" id="area">
+                    <option value="">すべての地域</option>
+                    {% for a in areas %}
+                        <option value="{{ a.pk }}"{% if a.pk|stringformat:"s" == selected_area %} selected{% endif %}>{{ a.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <button type="submit">検索</button>
-    </form>
-</div>
+            <button type="submit" class="opponent-search-button">検索する</button>
+        </form>
+    {% else %}
+        <div class="opponent-empty">
+            <p>部活動が登録されていません。</p>
+            <span>対戦相手を検索するには、先に部活動を登録してください。</span>
+            <a href="{% url 'my_club_list' %}" class="opponent-register-button">部活動を登録する</a>
+        </div>
+    {% endif %}
+</section>
 
 {% if selected_club %}
 
     {% if not has_my_dates %}
-        <div class="card">
-            <p>この部活動には、これから先の希望日が登録されていません。先に<a href="{% url 'club_availability' selected_club.pk %}">希望日を登録</a>してください。</p>
-        </div>
+        <section class="opponent-section">
+            <div class="opponent-empty-result">
+                <div class="opponent-empty-icon">▦</div>
+                <h4>希望日が登録されていません</h4>
+                <p>この部活動には、今日以降の希望日がありません。先に希望日を登録してください。</p>
+                <a href="{% url 'club_availability' selected_club.pk %}" class="opponent-register-button">希望日を登録する</a>
+            </div>
+        </section>
     {% else %}
 
-        <h3 class="result-title">共通の希望日がある相手校（{{ matches|length }}件）</h3>
-        <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>学校名</th>
-                        <th>地域</th>
-                        <th>距離（直線）</th>
-                        <th>共通の希望日</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in matches %}
-                        <tr>
-                            <td>{{ row.school.name }}</td>
-                            <td>{{ row.school.area.name|default:"—" }}</td>
-                            <td>{% if row.distance is not None %}{{ row.distance }} km{% else %}—{% endif %}</td>
-                            <td>
-                                <div class="date-chips">
-                                    {% for d in row.common|slice:":8" %}
-                                        <span class="date-chip">{{ d.date|date:"n/j（D）" }}{% if d.my_host or d.their_host %}<small>{% if d.my_host %}自校可{% endif %}{% if d.my_host and d.their_host %}・{% endif %}{% if d.their_host %}相手校可{% endif %}</small>{% endif %}</span>
-                                    {% endfor %}
-                                    {% if row.common|length > 8 %}
-                                        <span class="date-chip">ほか{{ row.common|length|add:"-8" }}日</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td><a href="{% url 'match_request' selected_club.pk row.club.pk %}" class="btn">申し込む</a></td>                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="5">希望日が重なる相手校は、見つかりませんでした。</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <!-- 共通の希望日がある相手校 -->
+        <section class="opponent-section">
+            <div class="opponent-section-heading">
+                <div class="opponent-heading-icon result">✓</div>
+                <div>
+                    <h3>希望日が重なる相手校（{{ matches|length }}件）</h3>
+                    <p>同じ地域の学校、距離が近い学校の順に並んでいます。</p>
+                </div>
+            </div>
 
-        <h3 class="result-title">条件は合うが、希望日が重なっていない相手校（{{ others|length }}件）</h3>
-        <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>学校名</th>
-                        <th>地域</th>
-                        <th>距離（直線）</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in others %}
-                        <tr>
-                            <td>{{ row.school.name }}</td>
-                            <td>{{ row.school.area.name|default:"—" }}</td>
-                            <td>{% if row.distance is not None %}{{ row.distance }} km{% else %}—{% endif %}</td>
-                            <td><a href="{% url 'match_request' selected_club.pk row.club.pk %}" class="btn">申し込む</a></td>                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="4">該当する相手校はありません。</td>
-                        </tr>
+            <div class="opponent-search-condition">
+                <span class="condition-label">検索対象</span>
+                <strong>{{ selected_club.get_gender_display }}{{ selected_club.sport.name }}部</strong>
+                <span>と同じ競技・区分の部活動</span>
+            </div>
+
+            {% if matches %}
+                <div class="opponent-result-grid">
+                    {% for row in matches %}
+                        {% include "matching/_opponent_card.html" with row=row show_dates=True %}
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </div>
+            {% else %}
+                <div class="opponent-empty-result">
+                    <div class="opponent-empty-icon">⌕</div>
+                    <h4>希望日が重なる相手校は見つかりませんでした</h4>
+                    <p>下の「その他の相手校」に、日程を提案して申し込むこともできます。</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- 条件は合うが、希望日が重なっていない相手校 -->
+        <section class="opponent-section">
+            <div class="opponent-section-heading">
+                <div class="opponent-heading-icon">▤</div>
+                <div>
+                    <h3>その他の相手校（{{ others|length }}件）</h3>
+                    <p>競技・区分は同じですが、希望日が重なっていない相手校です。日程を提案して申し込めます。</p>
+                </div>
+            </div>
+
+            {% if others %}
+                <div class="opponent-result-grid">
+                    {% for row in others %}
+                        {% include "matching/_opponent_card.html" with row=row show_dates=False %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="opponent-empty-result">
+                    <div class="opponent-empty-icon">⌕</div>
+                    <h4>該当する相手校はありません</h4>
+                </div>
+            {% endif %}
+        </section>
 
     {% endif %}
 
 {% endif %}
 
-{% endif %}
-
-<div class="back-login">
-    <a href="{% url 'teacher_home' %}">← 学校メニューに戻る</a>
+<div class="opponent-back-area">
+    <a href="{% url 'teacher_home' %}" class="opponent-back-button">← 学校ホームに戻る</a>
 </div>
 
 {% endblock %}

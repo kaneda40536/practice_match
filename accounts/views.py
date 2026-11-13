@@ -3,15 +3,17 @@ from django.contrib.auth import logout
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.urls import reverse_lazy
 from django.views.generic import FormView, ListView, TemplateView, View
 
 from .forms import CustomLoginForm, SchoolAccountCreateForm
-from .menus import BOARD_MENU, TEACHER_MENU
 from .models import User
 from schools.models import Club, School
 from facilities.models import Facility
+from matching.models import PracticeMatch
 
 def is_board(user):
     """教育委員会の管理者かどうか（スーパーユーザーも含む）"""
@@ -58,51 +60,58 @@ class TeacherRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         user = self.request.user
         return user.role == User.Role.TEACHER and user.school_id is not None
 
-class MenuMixin:
-    """メニューカードの一覧を、テンプレートに渡す"""
-    menu = []
-    menu_title = ""
-    template_name = 'menu_home.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        items = []
-        for item in self.menu:
-            url = reverse(item["url_name"]) if item["url_name"] else None
-            items.append({**item, "url": url})
-        context["menu_items"] = items
-        context["menu_title"] = self.menu_title
-        return context
-
-
 # ---------- ホーム画面（トップ） ----------
+# メニューカードは accounts/menus.py の内容を context_processors.navigation が渡す
 
-class BoardHomeView(BoardRequiredMixin, MenuMixin, TemplateView):
+class BoardHomeView(BoardRequiredMixin, TemplateView):
     template_name = "board_home.html"
-    menu = BOARD_MENU
-    menu_title = "管理メニュー"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["stats"] = [
-            {"label": "学校アカウント", "icon": "bi-people-fill", "color": "blue",
+            {"label": "学校アカウント", "icon": "▣", "color": "blue",
              "value": User.objects.filter(role=User.Role.TEACHER).count(),
              "unit": "件", "note": "登録されている学校アカウント"},
-            {"label": "登録学校数", "icon": "bi-building-fill", "color": "green",
+            {"label": "登録学校数", "icon": "▤", "color": "green",
              "value": School.objects.count(),
              "unit": "校", "note": "学校情報が登録されている学校"},
-            {"label": "部活動数", "icon": "bi-trophy-fill", "color": "purple",
+            {"label": "部活動数", "icon": "▦", "color": "purple",
              "value": Club.objects.count(),
              "unit": "件", "note": "登録されている部活動"},
-            {"label": "施設数", "icon": "bi-geo-alt-fill", "color": "orange",
+            {"label": "施設数", "icon": "⌖", "color": "orange",
              "value": Facility.objects.count(),
              "unit": "件", "note": "登録されている施設"},
         ]
         return context
 
-class TeacherHomeView(LoginRequiredMixin, MenuMixin, TemplateView):
-    menu = TEACHER_MENU
-    menu_title = "学校メニュー"
+class TeacherHomeView(TeacherRequiredMixin, TemplateView):
+    """顧問のホーム"""
+    template_name = "teacher_home.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        school = self.request.user.school
+        today = timezone.localdate()
+        pending = PracticeMatch.Status.PENDING
+        context["stats"] = [
+            {"label": "届いた申し込み", "icon": "↓", "color": "orange",
+             "value": PracticeMatch.objects.filter(
+                 opponent_club__school=school, status=pending).count(),
+             "unit": "件", "note": "返事を待っている申し込み"},
+            {"label": "申し込み中", "icon": "↑", "color": "blue",
+             "value": PracticeMatch.objects.filter(
+                 applicant_club__school=school, status=pending).count(),
+             "unit": "件", "note": "相手校の返事を待っている試合"},
+            {"label": "予定の試合", "icon": "✓", "color": "green",
+             "value": PracticeMatch.objects.filter(
+                 Q(applicant_club__school=school) | Q(opponent_club__school=school),
+                 status=PracticeMatch.Status.CONFIRMED, date__gte=today).count(),
+             "unit": "件", "note": "今日以降に確定している試合"},
+            {"label": "部活動", "icon": "▤", "color": "purple",
+             "value": Club.objects.filter(school=school).count(),
+             "unit": "件", "note": "登録されている自校の部活動"},
+        ]
+        return context
 
 
 # ---------- 学校アカウント管理（教育委員会） ----------

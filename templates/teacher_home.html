@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}学校ホーム｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}学校ホーム{% endblock %}
+
+{% block content %}
+
+<div class="welcome-area">
+    <div>
+        <h2>{{ user.school.name }}</h2>
+        <p>学校情報の管理や練習試合の調整を行えます。</p>
+    </div>
+</div>
+
+{% include "_home_dashboard.html" %}
+
+{% endblock %}

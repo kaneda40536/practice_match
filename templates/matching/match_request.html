@@ -2,88 +2,140 @@
 
 {% block title %}練習試合の申し込み｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}対戦相手検索{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<section class="school-intro">
+    <span class="english-label">MATCH REQUEST</span>
     <h2>練習試合の申し込み</h2>
-    <p>{{ applicant }} → {{ opponent }}</p>
-</div>
+    <p>{{ applicant }} → {{ opponent }}　日程と会場を提案して申し込みます。相手校が承認すると確定します。</p>
+</section>
 
-<div class="card">
-    <h3 class="result-title" style="margin-top: 0;">共通の希望日</h3>
+<!-- 共通の希望日 -->
+<section class="opponent-section">
+    <div class="opponent-section-heading">
+        <div class="opponent-heading-icon result">▦</div>
+        <div>
+            <h3>共通の希望日</h3>
+            <p>
+                {% if common_dates %}
+                    日付をクリックすると、下の「日程」に入ります。
+                {% else %}
+                    共通の希望日はありません。希望する日程を提案してください。
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
     {% if common_dates %}
-        <div class="date-chips" style="justify-content: flex-start;">
+        <div class="date-chips">
             {% for d in common_dates %}
-                <button type="button" class="date-chip date-chip--button" data-date="{{ d.date|date:'Y-m-d' }}">{{ d.date|date:"n/j（D）" }}{% if d.my_host or d.their_host %}<small>{% if d.my_host %}自校可{% endif %}{% if d.my_host and d.their_host %}・{% endif %}{% if d.their_host %}相手校可{% endif %}</small>{% endif %}</button>
+                <button type="button" class="date-chip" data-date="{{ d.date|date:'Y-m-d' }}">{{ d.date|date:"n/j（D）" }}{% if d.my_host or d.their_host %}<small>{% if d.my_host %}自校可{% endif %}{% if d.my_host and d.their_host %}・{% endif %}{% if d.their_host %}相手校可{% endif %}</small>{% endif %}</button>
             {% endfor %}
         </div>
-        <p class="help-text">日付をクリックすると、下の「日程」に入ります。</p>
-    {% else %}
-        <p>共通の希望日はありません。希望する日程を提案してください。相手校が承認すると確定します。</p>
     {% endif %}
-</div>
+</section>
 
-<div class="form-container">
-    <form method="post" class="edit-form">
+<!-- 申し込みフォーム -->
+<section class="school-form-card">
+    <div class="school-section-heading">
+        <h3>申し込み内容</h3>
+        <p>「自校」「相手校」を会場にできるのは、その日に「受け入れ可」が登録されている場合だけです。</p>
+    </div>
+
+    {% for error in form.non_field_errors %}
+        <p class="flash flash--error">{{ error }}</p>
+    {% endfor %}
+
+    <form method="post">
         {% csrf_token %}
 
-        {% for error in form.non_field_errors %}
-            <p class="field-error">{{ error }}</p>
-        {% endfor %}
-
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                    <div class="help-text">{{ field.help_text|safe }}</div>
-                {% endif %}
-                {% for error in field.errors %}
+        <div class="school-form-grid">
+            <div class="school-form-group">
+                <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                {{ form.date }}
+                {% for error in form.date.errors %}
                     <p class="field-error">{{ error }}</p>
                 {% endfor %}
             </div>
-        {% endfor %}
 
-        <button type="submit">申し込む</button>
-        <a href="{% url 'opponent_search' %}?club={{ applicant.pk }}" class="btn btn--secondary">戻る</a>
+            <div class="school-form-group">
+                <label for="{{ form.venue.id_for_label }}">{{ form.venue.label }}</label>
+                {{ form.venue }}
+                {% for error in form.venue.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="school-form-group is-wide">
+                <label for="{{ form.message.id_for_label }}">{{ form.message.label }}</label>
+                {{ form.message }}
+                {% for error in form.message.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="school-form-actions">
+            <button type="submit" class="school-save-button"
+                    onclick="return confirm('この内容で練習試合を申し込みますか？');">申し込む</button>
+        </div>
     </form>
-</div>
+</section>
 
-<h3 class="result-title">会場候補（施設）</h3>
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>施設名</th>
-                <th>所在地</th>
-                <th>{{ applicant.school.name }}から</th>
-                <th>{{ opponent.school.name }}から</th>
-                <th>合計</th>
-                <th>経路（Googleマップ）</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in candidates %}
+<!-- 会場候補 -->
+<section class="opponent-section">
+    <div class="opponent-section-heading">
+        <div class="opponent-heading-icon">⌖</div>
+        <div>
+            <h3>会場候補（施設）</h3>
+            <p>両校からの距離の合計が近い順です。距離は直線距離です。</p>
+        </div>
+    </div>
+
+    <div class="data-table-wrap">
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td>{{ c.facility.name }}</td>
-                    <td>{{ c.facility.address }}</td>
-                    <td>{% if c.dist_a is not None %}{{ c.dist_a }} km{% else %}—{% endif %}</td>
-                    <td>{% if c.dist_b is not None %}{{ c.dist_b }} km{% else %}—{% endif %}</td>
-                    <td>{% if c.total is not None %}{{ c.total }} km{% else %}—{% endif %}</td>
-                    <td>
-                        <a href="https://www.google.com/maps/dir/?api=1&origin={{ applicant.school.address|urlencode }}&destination={{ c.facility.address|urlencode }}" target="_blank" rel="noopener">自校から</a>
-                        ／
-                        <a href="https://www.google.com/maps/dir/?api=1&origin={{ opponent.school.address|urlencode }}&destination={{ c.facility.address|urlencode }}" target="_blank" rel="noopener">相手校から</a>
-                    </td>
+                    <th>施設名</th>
+                    <th>所在地</th>
+                    <th>{{ applicant.school.name }}から</th>
+                    <th>{{ opponent.school.name }}から</th>
+                    <th>合計</th>
+                    <th>経路（Googleマップ）</th>
                 </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6">この競技に対応する施設が、まだ登録されていません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <p class="help-text">距離は直線距離です。施設の予約状況や空き状況は、このシステムでは管理していません。実際に使えるかどうかは、施設に直接ご確認ください。</p>
+            </thead>
+            <tbody>
+                {% for c in candidates %}
+                    <tr>
+                        <td><strong>{{ c.facility.name }}</strong></td>
+                        <td>{{ c.facility.address }}</td>
+                        <td>{% if c.dist_a is not None %}{{ c.dist_a }} km{% else %}—{% endif %}</td>
+                        <td>{% if c.dist_b is not None %}{{ c.dist_b }} km{% else %}—{% endif %}</td>
+                        <td>{% if c.total is not None %}<strong>{{ c.total }} km</strong>{% else %}—{% endif %}</td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="https://www.google.com/maps/dir/?api=1&origin={{ applicant.school.address|urlencode }}&destination={{ c.facility.address|urlencode }}"
+                                   target="_blank" rel="noopener" class="action-button secondary">自校から ↗</a>
+                                <a href="https://www.google.com/maps/dir/?api=1&origin={{ opponent.school.address|urlencode }}&destination={{ c.facility.address|urlencode }}"
+                                   target="_blank" rel="noopener" class="action-button secondary">相手校から ↗</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty-row">この競技に対応する施設が、まだ登録されていません。</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="help-text">施設の予約状況や空き状況は、このシステムでは管理していません。実際に使えるかどうかは、施設に直接ご確認ください。</p>
+</section>
+
+<div class="opponent-back-area">
+    <a href="{% url 'opponent_search' %}?club={{ applicant.pk }}" class="opponent-back-button">← 対戦相手の検索に戻る</a>
 </div>
 
 <script>

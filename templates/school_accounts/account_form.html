@@ -2,32 +2,25 @@
 
 {% block title %}学校アカウントの作成｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}学校アカウント管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<div class="account-form-heading">
     <h2>学校アカウントの作成</h2>
-    <p>学校の情報と、ログイン用の学校ID・パスワードを登録します</p>
+    <p>学校の情報と、ログイン用の学校ID・パスワードを登録します。</p>
 </div>
 
-<div class="form-container">
-    <form method="post" class="edit-form">
+<div class="account-form-card">
+    <form method="post">
         {% csrf_token %}
 
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                    <div class="help-text">{{ field.help_text|safe }}</div>
-                {% endif %}
-                {% for error in field.errors %}
-                    <p class="field-error">{{ error }}</p>
-                {% endfor %}
-            </div>
-        {% endfor %}
+        {% include "_form_fields.html" with form=form %}
 
-        <button type="submit">作成する</button>
-        <a href="{% url 'school_account_list' %}" class="btn btn--secondary">キャンセル</a>
+        <div class="account-form-actions">
+            <a href="{% url 'school_account_list' %}" class="account-back-button">一覧に戻る</a>
+            <button type="submit" class="account-save-button">作成する</button>
+        </div>
     </form>
 </div>
 

@@ -5,7 +5,7 @@ from django.db.models import Count, ProtectedError, Q
 from django.utils import timezone
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, TemplateView
 from accounts.views import BoardRequiredMixin, TeacherRequiredMixin
 from .forms import ClubForm, SchoolAddressForm, SchoolUpdateForm
 from .models import Area, Club, School, Sport
@@ -48,6 +48,19 @@ class SportDeleteView(BoardRequiredMixin, DeleteView):
     model = Sport
     template_name = "sports/sport_confirm_delete.html"
     success_url = reverse_lazy("sport_list")
+
+    def get_context_data(self, **kwargs):
+        # 削除できない理由を、確認画面であらかじめ表示する
+        context = super().get_context_data(**kwargs)
+        reasons = []
+        club_count = self.object.club_set.count()
+        facility_count = self.object.facility_set.count()
+        if club_count:
+            reasons.append(f"部活動で使われています（{club_count}件）")
+        if facility_count:
+            reasons.append(f"施設の対応競技として使われています（{facility_count}件）")
+        context["reasons"] = reasons
+        return context
 
     def form_valid(self, form):
         # 多対多の関係は、何もしないと中間のデータが黙って消えてしまうので、先に確認する
@@ -161,11 +174,10 @@ class MySchoolView(TeacherRequiredMixin, DetailView):
 
 # ---------- 自校の部活動管理（顧問） ----------
 
-class MyClubListView(TeacherRequiredMixin, ListView):
-    template_name = "my_clubs/club_list.html"
-    context_object_name = "clubs"
+class MyClubsContextMixin:
+    """部活動管理の画面に、自校の部活動の一覧（希望日の件数つき）を渡す"""
 
-    def get_queryset(self):
+    def get_my_clubs(self):
         today = timezone.localdate()
         return (
             Club.objects.filter(school=self.request.user.school)
@@ -176,10 +188,30 @@ class MyClubListView(TeacherRequiredMixin, ListView):
             .order_by("sport__name", "gender")
         )
 
-class MyClubCreateView(TeacherRequiredMixin, CreateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["clubs"] = self.get_my_clubs()
+        return context
+
+
+class MyClubListView(TeacherRequiredMixin, MyClubsContextMixin, TemplateView):
+    """部活動の一覧と、登録フォームを1画面で表示する（登録は MyClubCreateView へ送る）"""
+    template_name = "my_clubs/club_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form"] = ClubForm(school=self.request.user.school)
+        return context
+
+
+class MyClubCreateView(TeacherRequiredMixin, MyClubsContextMixin, CreateView):
+    """登録フォームの送信先。入力に誤りがあれば、一覧画面にエラーつきで戻る"""
     form_class = ClubForm
-    template_name = "my_clubs/club_form.html"
+    template_name = "my_clubs/club_list.html"
     success_url = reverse_lazy("my_club_list")
+
+    def get(self, request, *args, **kwargs):
+        return redirect("my_club_list")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

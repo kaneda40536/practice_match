@@ -2,45 +2,67 @@
 
 {% block title %}競技管理｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}競技管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
-    <h2>競技管理</h2>
-    <p>登録する競技の種類を管理します</p>
+<div class="welcome-area">
+    <div>
+        <h2>登録済み競技一覧</h2>
+        <p>システムで取り扱う競技の登録・編集・削除を行います。</p>
+    </div>
 </div>
 
-<div class="card">
-    <div class="list-header">
-        <a href="{% url 'sport_add' %}" class="btn">競技を追加</a>
+<div class="account-summary">
+    <div>
+        <span class="summary-label">REGISTERED SPORTS</span>
+        <div class="summary-number">
+            {{ sports|length }}
+            <span>競技</span>
+        </div>
+    </div>
+    <a href="{% url 'sport_add' %}" class="admin-primary-button">
+        <span>＋</span>
+        新しい競技を登録
+    </a>
+</div>
+
+<div class="sport-list-card">
+    <div class="table-card-header">
+        <div>
+            <h3>競技一覧</h3>
+            <p>部活動や施設で使われている競技は、削除できません。</p>
+        </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>競技名</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sport in sports %}
-                <tr>
-                    <td>{{ sport.name }}</td>
-                    <td>
-                        <a href="{% url 'sport_edit' sport.pk %}" class="btn">編集</a>
-                        <a href="{% url 'sport_delete' sport.pk %}" class="btn btn--danger">削除</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="2">まだ競技が登録されていません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="sport-card-grid">
+        {% for sport in sports %}
+            <article class="sport-item-card">
+                <div class="sport-card-main">
+                    <div class="sport-icon-box">⚽</div>
+                    <div class="sport-card-info">
+                        <span class="sport-card-label">SPORT</span>
+                        <h4>{{ sport.name }}</h4>
+                    </div>
+                </div>
+
+                <div class="sport-card-actions">
+                    <a href="{% url 'sport_edit' sport.pk %}" class="admin-edit-button">編集</a>
+                    <a href="{% url 'sport_delete' sport.pk %}" class="admin-delete-button">削除</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="sport-empty">
+                <div class="sport-empty-icon">⚽</div>
+                <h3>競技が登録されていません</h3>
+                <p>「新しい競技を登録」から競技を追加してください。</p>
+            </div>
+        {% endfor %}
+    </div>
 </div>
 
-<div class="back-login">
-    <a href="{% url 'board_home' %}">← 管理メニューに戻る</a>
+<div class="admin-back-area">
+    <a href="{% url 'board_home' %}" class="admin-back-link">← 管理者ホームに戻る</a>
 </div>
 
 {% endblock %}

@@ -6,59 +6,13 @@
 
 {% block content %}
 
-<section class="dash-section">
-    <h2 class="dash-title">管理ダッシュボード</h2>
-    <p class="dash-sub">システムの登録状況を確認できます。</p>
-
-    <div class="stat-grid">
-        {% for stat in stats %}
-            <div class="stat-card">
-                <div class="stat-icon stat-icon--{{ stat.color }}">
-                    <i class="bi {{ stat.icon }}"></i>
-                </div>
-                <div class="stat-body">
-                    <p class="stat-label">{{ stat.label }}</p>
-                    <p class="stat-value">
-                        {% if stat.value is None %}—{% else %}{{ stat.value }}<span class="stat-unit">{{ stat.unit }}</span>{% endif %}
-                    </p>
-                    <p class="stat-note">{{ stat.note }}</p>
-                </div>
-            </div>
-        {% endfor %}
+<div class="welcome-area">
+    <div>
+        <h2>管理ダッシュボード</h2>
+        <p>システムの登録状況を確認できます。</p>
     </div>
-</section>
+</div>
 
-<section class="dash-section">
-    <h2 class="dash-title">管理メニュー</h2>
-    <p class="dash-sub">管理する情報を選択してください。</p>
-
-    <div class="admin-menu-grid">
-        {% for item in menu_items %}
-            {% if item.url %}
-                <a href="{{ item.url }}" class="admin-menu-card">
-                    <div class="menu-icon menu-icon--{{ item.color }}">
-                        <i class="bi {{ item.icon }}"></i>
-                    </div>
-                    <div class="menu-text">
-                        <strong>{{ item.title }}</strong>
-                        <span>{{ item.description }}</span>
-                    </div>
-                    <i class="bi bi-chevron-right menu-arrow"></i>
-                </a>
-            {% else %}
-                <div class="admin-menu-card is-disabled">
-                    <div class="menu-icon menu-icon--{{ item.color }}">
-                        <i class="bi {{ item.icon }}"></i>
-                    </div>
-                    <div class="menu-text">
-                        <strong>{{ item.title }}</strong>
-                        <span>{{ item.description }}</span>
-                    </div>
-                    <span class="soon-badge">準備中</span>
-                </div>
-            {% endif %}
-        {% endfor %}
-    </div>
-</section>
+{% include "_home_dashboard.html" %}
 
 {% endblock %}

@@ -2,20 +2,27 @@
 
 {% block title %}部活動の削除｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}部活動管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
+<section class="school-intro">
+    <span class="english-label">CLUB MANAGEMENT</span>
     <h2>部活動の削除</h2>
-</div>
+    <p>削除すると元に戻せません。</p>
+</section>
 
-<div class="form-container">
-    <p>「{{ object.get_gender_display }}{{ object.sport.name }}部」を削除します。よろしいですか？</p>
+<section class="school-form-card">
+    <div class="school-section-heading">
+        <h3>「{{ object.get_gender_display }}{{ object.sport.name }}部」を削除しますか？</h3>
+        <p>登録した希望日や、この部活動の練習試合の申し込みも、あわせて削除されます。</p>
+    </div>
 
-    <form method="post">
+    <form method="post" class="table-actions">
         {% csrf_token %}
-        <button type="submit" class="btn--danger">削除する</button>
-        <a href="{% url 'my_club_list' %}" class="btn btn--secondary">キャンセル</a>
+        <button type="submit" class="club-delete-button">削除する</button>
+        <a href="{% url 'my_club_list' %}" class="action-button secondary">キャンセル</a>
     </form>
-</div>
+</section>
 
 {% endblock %}

@@ -2,64 +2,100 @@
 
 {% block title %}施設情報管理｜練習試合調整支援システム{% endblock %}
 
+{% block heading %}施設情報管理{% endblock %}
+
 {% block content %}
 
-<div class="page-title">
-    <h2>施設情報管理</h2>
-    <p>練習試合で使用する施設を登録・管理します</p>
+<div class="welcome-area">
+    <div>
+        <h2>登録済み施設一覧</h2>
+        <p>練習試合で利用する施設の情報を確認・管理できます。</p>
+    </div>
 </div>
 
-<div class="card">
-    <div class="list-header">
-        <a href="{% url 'facility_add' %}" class="btn">施設を追加</a>
+<div class="account-summary">
+    <div>
+        <span class="summary-label">REGISTERED FACILITIES</span>
+        <div class="summary-number">
+            {{ facilities|length }}
+            <span>施設</span>
+        </div>
+    </div>
+    <a href="{% url 'facility_add' %}" class="admin-primary-button">
+        <span>＋</span>
+        新しい施設を登録
+    </a>
+</div>
+
+<div class="admin-table-card">
+    <div class="table-card-header">
+        <div>
+            <h3>施設情報一覧</h3>
+            <p>登録されている施設の所在地や対応競技を確認できます。</p>
+        </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>施設名</th>
-                <th>所在地</th>
-                <th>対応競技</th>
-                <th>設備</th>
-                <th>位置情報</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for facility in facilities %}
-                <tr>
-                    <td>{{ facility.name }}</td>
-                    <td>
-                        {{ facility.address }}<br>
-                        <a href="https://www.google.com/maps/search/?api=1&query={{ facility.address|urlencode }}" target="_blank" rel="noopener">地図で確認</a>
-                    </td>
-                    <td>
-                        {% for sport in facility.sports.all %}{{ sport.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
-                    </td>
-                    <td>{{ facility.equipment|default:"—"|linebreaksbr }}</td>
-                    <td>
-                        {% if facility.latitude is not None %}
-                            <span class="status status--on">取得済み</span>
-                        {% else %}
-                            <span class="status status--off">未取得</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'facility_edit' facility.pk %}" class="btn">編集</a>
-                        <a href="{% url 'facility_delete' facility.pk %}" class="btn btn--danger">削除</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6">まだ施設が登録されていません。</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if facilities %}
+        <div class="admin-table-wrap">
+            <table class="admin-data-table facility-data-table">
+                <thead>
+                    <tr>
+                        <th>施設名</th>
+                        <th>所在地</th>
+                        <th>対応競技</th>
+                        <th>設備</th>
+                        <th>位置情報</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facility in facilities %}
+                        <tr>
+                            <td><span class="facility-name">{{ facility.name }}</span></td>
+                            <td>
+                                <span class="facility-address">{{ facility.address }}</span><br>
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ facility.address|urlencode }}"
+                                   target="_blank" rel="noopener" class="map-link">地図で確認 ↗</a>
+                            </td>
+                            <td>
+                                <div class="facility-sports">
+                                    {% for sport in facility.sports.all %}
+                                        <span class="facility-sport-label">{{ sport.name }}</span>
+                                    {% empty %}
+                                        <span class="facility-no-sport">未登録</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>{{ facility.equipment|default:"—"|linebreaksbr }}</td>
+                            <td>
+                                {% if facility.latitude is not None %}
+                                    <span class="status-label status-active">● 取得済み</span>
+                                {% else %}
+                                    <span class="status-label status-inactive">● 未取得</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="facility-actions">
+                                    <a href="{% url 'facility_edit' facility.pk %}" class="facility-edit-button">編集</a>
+                                    <a href="{% url 'facility_delete' facility.pk %}" class="facility-delete-button">削除</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="facility-empty">
+            <div class="facility-empty-icon">⌖</div>
+            <h3>施設が登録されていません</h3>
+            <p>「新しい施設を登録」から施設情報を追加できます。</p>
+        </div>
+    {% endif %}
 </div>
 
-<div class="back-login">
-    <a href="{% url 'board_home' %}">← 管理メニューに戻る</a>
+<div class="admin-back-area">
+    <a href="{% url 'board_home' %}" class="admin-back-link">← 管理者ホームに戻る</a>
 </div>
 
 {% endblock %}
