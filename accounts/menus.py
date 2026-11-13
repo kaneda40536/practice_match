@@ -6,6 +6,7 @@
 #   icon        : 表示する記号
 #   color       : ホーム画面のカードのアイコンの色（blue / green / orange / purple / teal）
 #   match_names : この画面を開いているとき、サイドバーの項目を光らせる url_name の一覧
+#   badge       : サイドバーに件数を表示するときの種類（context_processors.teacher_badges を参照）
 
 
 # ---------- 教育委員会（管理者）側 ----------
@@ -57,19 +58,23 @@ TEACHER_MENU = [
     {"title": "対戦相手検索", "description": "希望日が重なる相手校を検索",
      "url_name": "opponent_search", "section": "match", "icon": "⌕", "color": "orange",
      "match_names": ["opponent_search", "match_request"]},
-    {"title": "日程調整", "description": "練習試合の日程や会場を調整",
-     "url_name": None, "section": "match", "icon": "▦", "color": "purple"},
+    {"title": "日程調整", "description": "相手校との共通の希望日を確認して申し込む",
+     "url_name": "schedule", "section": "match", "icon": "▦", "color": "purple",
+     "match_names": ["schedule"]},
     {"title": "届いた申し込み", "description": "他校から届いた申し込みを確認・対応",
      "url_name": "received_matches", "section": "match", "icon": "↓", "color": "teal",
-     "match_names": ["received_matches"]},
+     "match_names": ["received_matches"], "badge": "pending_received"},
     {"title": "申し込んだ試合", "description": "自校から申し込んだ試合の状況を確認",
      "url_name": "sent_matches", "section": "match", "icon": "↑", "color": "blue",
      "match_names": ["sent_matches"]},
     {"title": "予定試合一覧", "description": "確定した練習試合の日程を確認",
-     "url_name": None, "section": "match", "icon": "✓", "color": "green"},
+     "url_name": "planned_matches", "section": "match", "icon": "✓", "color": "green",
+     "match_names": ["planned_matches"]},
     {"title": "試合結果管理", "description": "試合結果の登録・確認",
-     "url_name": None, "section": "match", "icon": "★", "color": "orange"},
+     "url_name": "match_results", "section": "match", "icon": "★", "color": "orange",
+     "match_names": ["match_results", "match_result_edit"]},
 
     {"title": "メッセージ", "description": "他校との会話を確認・開始",
-     "url_name": None, "section": "contact", "icon": "✉", "color": "purple"},
+     "url_name": "message_list", "section": "contact", "icon": "✉", "color": "purple",
+     "match_names": ["message_list", "message_room"], "badge": "unread_messages"},
 ]

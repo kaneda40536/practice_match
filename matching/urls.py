@@ -16,4 +16,17 @@ urlpatterns = [
     path("matches/<int:pk>/withdraw/", views.MatchWithdrawView.as_view(), name="match_withdraw"),
     path("matches/<int:pk>/approve/", views.MatchApproveView.as_view(), name="match_approve"),
     path("matches/<int:pk>/decline/", views.MatchDeclineView.as_view(), name="match_decline"),
+
+    # 日程調整
+    path("schedule/", views.ScheduleView.as_view(), name="schedule"),
+
+    # 予定試合・試合結果
+    path("planned/", views.PlannedMatchListView.as_view(), name="planned_matches"),
+    path("results/", views.MatchResultListView.as_view(), name="match_results"),
+    path("matches/<int:pk>/result/", views.MatchResultEditView.as_view(), name="match_result_edit"),
+    path("results/<int:pk>/delete/", views.MatchResultDeleteView.as_view(), name="match_result_delete"),
+
+    # メッセージ
+    path("messages/", views.MessageListView.as_view(), name="message_list"),
+    path("messages/<int:school_pk>/", views.MessageRoomView.as_view(), name="message_room"),
 ]

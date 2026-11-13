@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}日程調整｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}日程調整{% endblock %}
+
+{% block content %}
+
+<section class="school-intro">
+    <span class="english-label">SCHEDULE COORDINATION</span>
+    <h2>日程調整</h2>
+    <p>相手校の部活動を選んで、両校の希望日が重なる日を確認し、練習試合を申し込みます。</p>
+</section>
+
+<!-- 01：対戦相手の選択 -->
+<section class="schedule-section">
+    <div class="schedule-section-heading">
+        <div class="schedule-heading-icon">01</div>
+        <div>
+            <h3>対戦相手の選択</h3>
+            <p>自校の部活動と、相手校の部活動を選択してください。</p>
+        </div>
+    </div>
+
+    {% if not my_clubs %}
+        <div class="schedule-notice">
+            部活動が登録されていません。<a href="{% url 'my_club_list' %}">部活動管理</a>から登録してください。
+        </div>
+    {% else %}
+        <form method="get" class="schedule-select-form">
+            <div class="schedule-field">
+                <label for="club">自校の部活動</label>
+                <select name="club" id="club" required onchange="this.form.submit()">
+                    <option value="">部活動を選択してください</option>
+                    {% for c in my_clubs %}
+                        <option value="{{ c.pk }}"{% if selected_club and selected_club.pk == c.pk %} selected{% endif %}>
+                            {{ c.get_gender_display }}{{ c.sport.name }}部
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if selected_club %}
+                <div class="schedule-field">
+                    <label for="opponent">相手校の部活動</label>
+                    <select name="opponent" id="opponent" required>
+                        <option value="">相手校を選択してください</option>
+                        {% for o in opponent_clubs %}
+                            <option value="{{ o.pk }}"{% if selected_opponent and selected_opponent.pk == o.pk %} selected{% endif %}>
+                                {{ o.school.name }}（{{ o.school.area.name|default:"地域未登録" }}）
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="schedule-primary-button green">共通候補日を確認</button>
+            {% else %}
+                <button type="submit" class="schedule-primary-button">相手校を表示</button>
+            {% endif %}
+        </form>
+
+        {% if selected_club %}
+            <div class="schedule-divider"></div>
+            <div class="schedule-notice">
+                <p>
+                    {{ selected_club.get_gender_display }}{{ selected_club.sport.name }}部の、今日以降の希望日：<strong>{{ my_date_count }}日</strong>
+                </p>
+                <a href="{% url 'club_availability' selected_club.pk %}" class="schedule-primary-button">自校の希望日を登録・編集する</a>
+            </div>
+
+            {% if not opponent_clubs %}
+                <div class="schedule-notice">同じ競技・区分の、相手校の部活動が登録されていません。</div>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</section>
+
+<!-- 02：共通候補日 -->
+{% if selected_opponent %}
+    <section class="schedule-section">
+        <div class="schedule-section-heading">
+            <div class="schedule-heading-icon green">02</div>
+            <div>
+                <h3>共通候補日の確認</h3>
+                <p>両校の希望日が重なる日です。申し込む日程を選んでください。</p>
+            </div>
+        </div>
+
+        <div class="schedule-summary">
+            <div class="schedule-summary-item">
+                <span>自校</span>
+                <strong>{{ selected_club.get_gender_display }}{{ selected_club.sport.name }}部</strong>
+            </div>
+            <div class="schedule-summary-arrow">VS</div>
+            <div class="schedule-summary-item">
+                <span>相手校</span>
+                <strong>{{ selected_opponent.school.name }}　{{ selected_opponent.get_gender_display }}{{ selected_opponent.sport.name }}部</strong>
+            </div>
+        </div>
+
+        {% if candidates %}
+            <div class="schedule-table-wrapper">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>自校の登録内容</th>
+                            <th>相手校の登録内容</th>
+                            <th>申し込み</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in candidates %}
+                            <tr>
+                                <td class="schedule-date-cell">{{ c.date|date:"Y年n月j日（D）" }}</td>
+                                <td>
+                                    <div class="schedule-type-list">
+                                        <span class="schedule-type-tag">希望日</span>
+                                        {% if c.my_host %}<span class="schedule-type-tag">受け入れ可</span>{% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="schedule-type-list">
+                                        <span class="schedule-type-tag opponent">希望日</span>
+                                        {% if c.their_host %}<span class="schedule-type-tag opponent">受け入れ可</span>{% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if c.requested %}
+                                        <span class="received-status pending">{{ c.requested }}</span>
+                                    {% elif c.busy %}
+                                        <span class="received-status declined">別の試合が確定済み</span>
+                                    {% else %}
+                                        <a href="{% url 'match_request' selected_club.pk selected_opponent.pk %}?date={{ c.date|date:'Y-m-d' }}"
+                                           class="schedule-apply-button">この日程で申し込む</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="schedule-empty">
+                <div class="schedule-empty-icon">▦</div>
+                <h4>共通候補日はありません</h4>
+                <p>
+                    相手校の今日以降の希望日は {{ their_date_count }}日 です。
+                    自校の希望日を増やすか、希望日以外の日程を提案して申し込むこともできます。
+                </p>
+                <a href="{% url 'match_request' selected_club.pk selected_opponent.pk %}" class="schedule-primary-button">日程を提案して申し込む</a>
+            </div>
+        {% endif %}
+    </section>
+{% endif %}
+
+<div class="schedule-back-area">
+    <a href="{% url 'teacher_home' %}" class="schedule-back-button">← 学校ホームに戻る</a>
+</div>
+
+{% endblock %}

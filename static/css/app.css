@@ -595,3 +595,207 @@ button.date-chip:hover {
 .action-button.danger:hover {
     background: #fecaca;
 }
+
+
+/* ========================================
+   手順5で追加した画面（予定試合・試合結果・メッセージ・日程調整）
+======================================== */
+
+/* ---------- サイドバーの件数バッジ ---------- */
+
+.sidebar-badge {
+    min-width: 20px;
+    margin-left: auto;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 16px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+
+/* ---------- 日程調整：ボタンをリンク（<a>）でも使えるようにする ---------- */
+
+a.schedule-primary-button,
+a.schedule-apply-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.schedule-field select {
+    max-width: none;
+    margin: 0;
+}
+
+.schedule-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.schedule-notice p {
+    margin: 0;
+}
+
+.schedule-empty .schedule-primary-button {
+    margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+    .schedule-select-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+
+/* ---------- 試合結果：自校から見た得点と勝敗 ---------- */
+
+.score-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.outcome-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.outcome-badge.win {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.outcome-badge.lose {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.outcome-badge.draw {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.record-stats {
+    margin-bottom: 24px;
+}
+
+
+/* ---------- メッセージ ---------- */
+
+.messages-conversation.has-unread {
+    border-color: #bfdbfe;
+    background: #f5f9ff;
+}
+
+.unread-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+.chat-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 55vh;
+    margin-bottom: 18px;
+    padding: 6px 4px 6px 0;
+    overflow-y: auto;
+}
+
+.chat-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 75%;
+}
+
+.chat-message.is-mine {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.chat-bubble {
+    padding: 11px 15px;
+    border-radius: 14px 14px 14px 4px;
+    background: #f1f5f9;
+    color: #1e293b;
+    font-size: 14px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.chat-message.is-mine .chat-bubble {
+    border-radius: 14px 14px 4px 14px;
+    background: #2d669e;
+    color: #fff;
+}
+
+.chat-meta {
+    margin-top: 5px;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.chat-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #eef2f7;
+}
+
+.chat-form textarea {
+    flex: 1;
+    max-width: none;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid #d8e0e9;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.chat-form textarea:focus {
+    outline: none;
+    border-color: #3476b7;
+    box-shadow: 0 0 0 3px rgba(52, 118, 183, 0.12);
+}
+
+.chat-form button {
+    flex-shrink: 0;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}

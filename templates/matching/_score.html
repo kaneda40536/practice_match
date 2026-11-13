@@ -1,0 +1,11 @@
+{# 自校から見た得点と勝敗。row = matching.views.match_row の戻り値 #}
+<span class="score-cell">
+    <span class="planned-score">{{ row.my_score }} - {{ row.their_score }}</span>
+    {% if row.outcome == "win" %}
+        <span class="outcome-badge win">勝</span>
+    {% elif row.outcome == "lose" %}
+        <span class="outcome-badge lose">負</span>
+    {% else %}
+        <span class="outcome-badge draw">分</span>
+    {% endif %}
+</span>

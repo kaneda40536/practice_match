@@ -47,6 +47,9 @@
                         <a href="{{ item.url }}" class="sidebar-link{% if item.active %} active{% endif %}">
                             <span class="nav-icon">{{ item.icon }}</span>
                             <span>{{ item.title }}</span>
+                            {% if item.badge_count %}
+                                <span class="sidebar-badge" aria-label="{{ item.badge_count }}件">{{ item.badge_count }}</span>
+                            {% endif %}
                         </a>
                     {% else %}
                         <span class="sidebar-link is-disabled" title="準備中">

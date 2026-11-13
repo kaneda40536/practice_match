@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}メッセージ｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}メッセージ{% endblock %}
+
+{% block content %}
+
+<div class="messages-heading">
+    <div>
+        <p class="messages-eyebrow">MESSAGES</p>
+        <h2>メッセージ一覧</h2>
+        <p>相手校との連絡や過去の会話を確認できます。</p>
+    </div>
+</div>
+
+<!-- 過去の会話 -->
+<section class="messages-section">
+    <div class="messages-section-heading">
+        <div>
+            <h3>会話</h3>
+            <p>新しいメッセージがある会話から順に並んでいます。</p>
+        </div>
+    </div>
+
+    {% if conversations %}
+        <div class="messages-list">
+            {% for conv in conversations %}
+                <a href="{% url 'message_room' conv.school.pk %}" class="messages-conversation{% if conv.unread %} has-unread{% endif %}">
+                    <div class="messages-school-icon">{{ conv.school.name|first }}</div>
+                    <div class="messages-conversation-content">
+                        <strong>
+                            {{ conv.school.name }}
+                            {% if conv.unread %}<span class="unread-badge">未読 {{ conv.unread }}</span>{% endif %}
+                        </strong>
+                        <p>{% if conv.last_is_mine %}あなた：{% endif %}{{ conv.last_message.content|truncatechars:50 }}</p>
+                        <small>{{ conv.last_message.created_at|date:"Y/m/d H:i" }}</small>
+                    </div>
+                    <span class="messages-arrow">›</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="messages-empty">
+            <div class="messages-empty-icon">✉</div>
+            <h4>まだ会話はありません</h4>
+            <p>下の一覧から学校を選んで、メッセージを開始できます。</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- 新しいメッセージを開始 -->
+<section class="messages-section">
+    <div class="messages-section-heading">
+        <div>
+            <h3>新しいメッセージを開始</h3>
+            <p>連絡を取りたい学校を選択してください。練習試合でやり取りのある学校が先頭に表示されます。</p>
+        </div>
+    </div>
+
+    {% if available_schools %}
+        <div class="messages-school-list">
+            {% for school in available_schools %}
+                <div class="messages-school-item">
+                    <div class="messages-school-info">
+                        <div class="messages-school-icon">{{ school.name|first }}</div>
+                        <div>
+                            <strong>{{ school.name }}</strong>
+                            <p>
+                                {{ school.area.name|default:"地域未登録" }}
+                                {% if school.pk in partner_ids %}・練習試合のやり取りあり{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{% url 'message_room' school.pk %}" class="messages-start-button">メッセージを開始</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="messages-empty">
+            <p>新しくメッセージを開始できる学校はありません。</p>
+        </div>
+    {% endif %}
+</section>
+
+<div class="messages-back">
+    <a href="{% url 'teacher_home' %}">← 学校ホームに戻る</a>
+</div>
+
+{% endblock %}

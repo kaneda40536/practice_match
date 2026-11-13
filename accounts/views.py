@@ -13,7 +13,7 @@ from .forms import CustomLoginForm, SchoolAccountCreateForm
 from .models import User
 from schools.models import Club, School
 from facilities.models import Facility
-from matching.models import PracticeMatch
+from matching.models import Message, PracticeMatch
 
 def is_board(user):
     """教育委員会の管理者かどうか（スーパーユーザーも含む）"""
@@ -107,9 +107,9 @@ class TeacherHomeView(TeacherRequiredMixin, TemplateView):
                  Q(applicant_club__school=school) | Q(opponent_club__school=school),
                  status=PracticeMatch.Status.CONFIRMED, date__gte=today).count(),
              "unit": "件", "note": "今日以降に確定している試合"},
-            {"label": "部活動", "icon": "▤", "color": "purple",
-             "value": Club.objects.filter(school=school).count(),
-             "unit": "件", "note": "登録されている自校の部活動"},
+            {"label": "未読メッセージ", "icon": "✉", "color": "purple",
+             "value": Message.objects.filter(receiver=school, is_read=False).count(),
+             "unit": "件", "note": "まだ読んでいない他校からのメッセージ"},
         ]
         return context
 

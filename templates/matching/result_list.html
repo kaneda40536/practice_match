@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}試合結果管理｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}試合結果管理{% endblock %}
+
+{% block content %}
+
+<div class="result-management-heading">
+    <div>
+        <p class="result-management-eyebrow">MATCH RESULTS</p>
+        <h2>試合結果管理</h2>
+        <p>練習試合の結果を登録・確認できます。得点は自校から見た形（自校 - 相手）で表示しています。</p>
+    </div>
+</div>
+
+<!-- 通算成績 -->
+<div class="dashboard-stats record-stats">
+    <div class="dashboard-stat-card">
+        <div class="stat-card-top"><span>勝ち</span><div class="stat-icon stat-green">○</div></div>
+        <div class="stat-number">{{ record.win }}<span>試合</span></div>
+    </div>
+    <div class="dashboard-stat-card">
+        <div class="stat-card-top"><span>負け</span><div class="stat-icon stat-orange">●</div></div>
+        <div class="stat-number">{{ record.lose }}<span>試合</span></div>
+    </div>
+    <div class="dashboard-stat-card">
+        <div class="stat-card-top"><span>引き分け</span><div class="stat-icon stat-blue">△</div></div>
+        <div class="stat-number">{{ record.draw }}<span>試合</span></div>
+    </div>
+</div>
+
+<!-- 結果が未登録の試合 -->
+{% if unrecorded %}
+    <section class="result-management-section">
+        <div class="result-management-section-heading">
+            <div>
+                <h3>結果が未登録の試合（{{ unrecorded|length }}件）</h3>
+                <p>終わった試合の結果を登録してください。</p>
+            </div>
+        </div>
+
+        <div class="result-management-table-wrap">
+            <table class="result-management-table">
+                <thead>
+                    <tr>
+                        <th>試合日</th>
+                        <th>自校</th>
+                        <th>相手校</th>
+                        <th>会場</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in unrecorded %}
+                        <tr>
+                            <td class="result-management-date">{{ row.match.date|date:"Y年n月j日（D）" }}</td>
+                            <td>{{ row.my_club.get_gender_display }}{{ row.my_club.sport.name }}部</td>
+                            <td>
+                                <div class="result-management-team">
+                                    <strong>{{ row.other_club.school.name }}</strong>
+                                    <span>{{ row.other_club.get_gender_display }}{{ row.other_club.sport.name }}部</span>
+                                </div>
+                            </td>
+                            <td>{{ row.match.venue_name }}</td>
+                            <td>
+                                <a href="{% url 'match_result_edit' row.match.pk %}" class="planned-result-button">結果を登録</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endif %}
+
+<!-- 登録済みの試合結果 -->
+<section class="result-management-section">
+    <div class="result-management-section-heading">
+        <div>
+            <h3>登録済み試合結果一覧</h3>
+            <p>試合結果の確認や編集、削除ができます。相手校が登録した結果も表示されます。</p>
+        </div>
+    </div>
+
+    {% if results %}
+        <div class="result-management-table-wrap">
+            <table class="result-management-table">
+                <thead>
+                    <tr>
+                        <th>試合日</th>
+                        <th>自校</th>
+                        <th>相手校</th>
+                        <th>試合結果</th>
+                        <th>備考</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in results %}
+                        <tr>
+                            <td class="result-management-date">{{ row.match.date|date:"Y年n月j日（D）" }}</td>
+                            <td>{{ row.my_club.get_gender_display }}{{ row.my_club.sport.name }}部</td>
+                            <td>
+                                <div class="result-management-team">
+                                    <strong>{{ row.other_club.school.name }}</strong>
+                                    <span>{{ row.other_club.get_gender_display }}{{ row.other_club.sport.name }}部</span>
+                                </div>
+                            </td>
+                            <td>{% include "matching/_score.html" with row=row %}</td>
+                            <td class="result-management-notes">{{ row.result.notes|default:"-"|linebreaksbr }}</td>
+                            <td>
+                                <div class="result-management-actions">
+                                    <a href="{% url 'match_result_edit' row.match.pk %}" class="result-management-edit">編集</a>
+                                    <form method="post" action="{% url 'match_result_delete' row.result.pk %}"
+                                          onsubmit="return confirm('この試合結果を削除してもよろしいですか？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="result-management-delete">削除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="result-management-empty">
+            <div class="result-management-empty-icon">🏆</div>
+            <h4>試合結果はありません</h4>
+            <p>試合が終わったら、「予定試合一覧」または上の一覧から結果を登録できます。</p>
+        </div>
+    {% endif %}
+</section>
+
+<div class="result-management-back">
+    <a href="{% url 'teacher_home' %}">← 学校ホームに戻る</a>
+</div>
+
+{% endblock %}

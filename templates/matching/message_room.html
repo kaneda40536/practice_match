@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ other.name }}とのメッセージ｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}メッセージ{% endblock %}
+
+{% block content %}
+
+<div class="messages-heading">
+    <div>
+        <p class="messages-eyebrow">MESSAGES</p>
+        <h2>{{ other.name }}</h2>
+        <p>{{ other.area.name|default:"地域未登録" }}{% if other.address %}・{{ other.address }}{% endif %}</p>
+    </div>
+</div>
+
+{% if related_matches %}
+    <section class="messages-section">
+        <div class="messages-section-heading">
+            <div>
+                <h3>この学校との、これからの練習試合</h3>
+            </div>
+        </div>
+        <div class="date-chips">
+            {% for m in related_matches %}
+                <span class="date-chip">
+                    {{ m.date|date:"n/j（D）" }} {{ m.venue_name }}
+                    <small>{{ m.get_status_display }}</small>
+                </span>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+<section class="messages-section">
+    <div class="chat-thread" id="chat-thread">
+        {% for message in thread %}
+            <div class="chat-message{% if message.sender_id == user.school_id %} is-mine{% endif %}"{% if forloop.last %} id="latest"{% endif %}>
+                <div class="chat-bubble">{{ message.content|linebreaksbr }}</div>
+                <small class="chat-meta">
+                    {% if message.sender_id == user.school_id %}あなた{% else %}{{ message.sender.name }}{% endif %}
+                    ・{{ message.created_at|date:"Y/n/j H:i" }}
+                    {% if message.sender_id == user.school_id and message.is_read %}・既読{% endif %}
+                </small>
+            </div>
+        {% empty %}
+            <div class="messages-empty">
+                <div class="messages-empty-icon">✉</div>
+                <h4>まだメッセージはありません</h4>
+                <p>練習試合の日程や会場について、相談してみましょう。</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <form method="post" class="chat-form">
+        {% csrf_token %}
+        <label for="{{ form.content.id_for_label }}" class="visually-hidden">{{ form.content.label }}</label>
+        {{ form.content }}
+        <button type="submit" class="messages-start-button">送信</button>
+    </form>
+    {% for error in form.content.errors %}
+        <p class="field-error">{{ error }}</p>
+    {% endfor %}
+</section>
+
+<div class="messages-back">
+    <a href="{% url 'message_list' %}">← メッセージ一覧に戻る</a>
+</div>
+
+<script>
+    // 会話の最後（最新のメッセージ）までスクロールしておく
+    var thread = document.getElementById("chat-thread");
+    if (thread) { thread.scrollTop = thread.scrollHeight; }
+</script>
+
+{% endblock %}

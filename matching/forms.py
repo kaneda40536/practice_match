@@ -2,7 +2,7 @@ from django import forms
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import Availability, PracticeMatch
+from .models import Availability, MatchResult, Message, PracticeMatch
 from .venues import venue_candidates
 
 class AvailabilityForm(forms.ModelForm):
@@ -125,3 +125,41 @@ class MatchRequestForm(forms.ModelForm):
             self.instance.venue_kind = venue
             self.instance.facility = None
         return super().save(commit)
+
+class MatchResultForm(forms.ModelForm):
+    """試合結果の登録・編集フォーム。得点の欄には学校名を表示する"""
+
+    class Meta:
+        model = MatchResult
+        fields = ["applicant_score", "opponent_score", "notes"]
+        widgets = {
+            "applicant_score": forms.NumberInput(attrs={"min": 0, "inputmode": "numeric"}),
+            "opponent_score": forms.NumberInput(attrs={"min": 0, "inputmode": "numeric"}),
+            "notes": forms.Textarea(attrs={
+                "rows": 4, "placeholder": "試合内容や、次回への反省点などを自由に入力してください。"}),
+        }
+
+    def __init__(self, *args, match, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.match = match
+        self.fields["applicant_score"].label = f"{match.applicant_club.school.name}の得点"
+        self.fields["opponent_score"].label = f"{match.opponent_club.school.name}の得点"
+
+
+class MessageForm(forms.ModelForm):
+    """メッセージの送信フォーム"""
+
+    class Meta:
+        model = Message
+        fields = ["content"]
+        widgets = {
+            "content": forms.Textarea(attrs={
+                "rows": 3, "placeholder": "メッセージを入力してください", "maxlength": 2000}),
+        }
+        labels = {"content": "メッセージ"}
+
+    def clean_content(self):
+        content = self.cleaned_data["content"].strip()
+        if not content:
+            raise forms.ValidationError("メッセージを入力してください。")
+        return content

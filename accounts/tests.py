@@ -60,6 +60,13 @@ class TeacherPagesTest(TestCase):
             reverse("match_request", args=[self.club.pk, self.other_club.pk]),
             reverse("received_matches"),
             reverse("sent_matches"),
+            reverse("schedule"),
+            reverse("schedule") + f"?club={self.club.pk}",
+            reverse("schedule") + f"?club={self.club.pk}&opponent={self.other_club.pk}",
+            reverse("planned_matches"),
+            reverse("match_results"),
+            reverse("message_list"),
+            reverse("message_room", args=[self.other.pk]),
         ]
         for url in urls:
             with self.subTest(url=url):
@@ -70,7 +77,7 @@ class TeacherPagesTest(TestCase):
     def test_home_shows_sidebar_and_stats(self):
         response = self.client.get(reverse("teacher_home"))
         self.assertContains(response, "A高校")
-        self.assertContains(response, "準備中")          # 未実装の機能
+        self.assertNotContains(response, "準備中")       # すべての機能が使える
         self.assertContains(response, reverse("received_matches"))
 
     def test_sidebar_marks_current_page(self):
