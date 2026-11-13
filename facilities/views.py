@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.db.models import ProtectedError
+from django.shortcuts import redirect
 
 from accounts.views import BoardRequiredMixin
 from .forms import FacilityForm
@@ -44,6 +46,10 @@ class FacilityDeleteView(BoardRequiredMixin, DeleteView):
 
     def form_valid(self, form):
         name = self.object.name
-        response = super().form_valid(form)
+        try:
+            response = super().form_valid(form)
+        except ProtectedError:
+            messages.error(self.request, "この施設は、練習試合の会場として使われているため、削除できません。")
+            return redirect("facility_list")
         messages.success(self.request, f"「{name}」を削除しました。")
         return response

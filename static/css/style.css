@@ -1502,3 +1502,24 @@ a.admin-menu-card:hover {
     margin-left: 6px;
     color: #1e6b3a;
 }
+
+/* ========================================
+   練習試合の申し込み（新システム）
+======================================== */
+
+/* 申込中の表示（黄色） */
+.status--wait {
+    color: #8a5a00;
+    background: #fff6e0;
+    border: 1px solid #f0dca8;
+}
+
+/* クリックして日程に入れる日付 */
+.date-chip--button {
+    color: #263746;
+    cursor: pointer;
+}
+
+.date-chip--button:hover {
+    background: #e8eff5;
+}

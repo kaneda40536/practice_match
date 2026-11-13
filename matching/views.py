@@ -1,15 +1,14 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, TemplateView, View
+from django.views.generic import CreateView, ListView, TemplateView, View
 
 from accounts.views import TeacherRequiredMixin
 from schools.distance import distance_km
 from schools.models import Area, Club
-from .forms import AvailabilityForm
-from .models import Availability
-
+from .forms import AvailabilityForm, MatchRequestForm
+from .models import Availability, PracticeMatch
 
 # ---------- 希望日の登録 ----------
 
@@ -160,3 +159,146 @@ class OpponentSearchView(TeacherRequiredMixin, TemplateView):
         context["matches"] = sorted(matches, key=sort_key)
         context["others"] = sorted(others, key=sort_key)
         return context
+
+# ---------- 練習試合の申し込み ----------
+
+class MatchRequestView(TeacherRequiredMixin, CreateView):
+    """相手校の部活動を選んで、日程と会場を提案し、申し込む"""
+    form_class = MatchRequestForm
+    template_name = "matching/match_request.html"
+    success_url = reverse_lazy("sent_matches")
+
+    def get_clubs(self):
+        if not hasattr(self, "_clubs"):
+            clubs = Club.objects.select_related("school__area", "sport")
+            # 申込側は自校の部活動だけ
+            applicant = get_object_or_404(
+                clubs, pk=self.kwargs["club_pk"], school=self.request.user.school
+            )
+            # 相手側は、同じ競技・同じ区分で、別の学校の部活動だけ
+            opponent = get_object_or_404(
+                clubs.exclude(school=applicant.school),
+                pk=self.kwargs["opponent_pk"],
+                sport=applicant.sport,
+                gender=applicant.gender,
+            )
+            self._clubs = (applicant, opponent)
+        return self._clubs
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        applicant, opponent = self.get_clubs()
+        kwargs["applicant"] = applicant
+        kwargs["opponent"] = opponent
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        applicant, opponent = self.get_clubs()
+
+        # 共通の希望日
+        mine = {
+            a.date: a
+            for a in Availability.objects.filter(club=applicant, date__gte=timezone.localdate())
+        }
+        theirs = Availability.objects.filter(club=opponent, date__in=list(mine)).order_by("date")
+
+        context["applicant"] = applicant
+        context["opponent"] = opponent
+        context["common_dates"] = [
+            {"date": a.date, "my_host": mine[a.date].can_host, "their_host": a.can_host}
+            for a in theirs
+        ]
+        context["candidates"] = context["form"].candidates
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "練習試合を申し込みました。相手校の承認をお待ちください。")
+        return response
+
+
+class SentMatchListView(TeacherRequiredMixin, ListView):
+    """申し込んだ試合の一覧"""
+    template_name = "matching/sent_list.html"
+    context_object_name = "matches"
+
+    def get_queryset(self):
+        return (
+            PracticeMatch.objects.filter(applicant_club__school=self.request.user.school)
+            .select_related(
+                "applicant_club__school", "opponent_club__school",
+                "opponent_club__sport", "facility",
+            )
+            .order_by("-created_at")
+        )
+
+
+class ReceivedMatchListView(TeacherRequiredMixin, ListView):
+    """届いた申し込みの一覧"""
+    template_name = "matching/received_list.html"
+    context_object_name = "matches"
+
+    def get_queryset(self):
+        return (
+            PracticeMatch.objects.filter(opponent_club__school=self.request.user.school)
+            .select_related(
+                "applicant_club__school", "applicant_club__sport",
+                "opponent_club__school", "facility",
+            )
+            .order_by("-created_at")
+        )
+
+
+class MatchWithdrawView(TeacherRequiredMixin, View):
+    """申し込みを取り下げる（申込側だけ、申込中のものだけ）"""
+
+    def post(self, request, pk):
+        match = get_object_or_404(
+            PracticeMatch, pk=pk, applicant_club__school=request.user.school
+        )
+        if match.status != PracticeMatch.Status.PENDING:
+            messages.error(request, "承認または辞退された申し込みは、取り下げられません。")
+        else:
+            match.delete()
+            messages.success(request, "申し込みを取り下げました。")
+        return redirect("sent_matches")
+
+
+class MatchApproveView(TeacherRequiredMixin, View):
+    """届いた申し込みを承認する。承認すると練習試合が確定する"""
+
+    def post(self, request, pk):
+        match = get_object_or_404(
+            PracticeMatch, pk=pk, opponent_club__school=request.user.school
+        )
+        if match.status != PracticeMatch.Status.PENDING:
+            messages.error(request, "この申し込みは、すでに処理されています。")
+        elif match.has_conflict():
+            messages.error(
+                request,
+                "この日は、どちらかの部活動に、すでに別の練習試合が確定しているため、承認できません。",
+            )
+        else:
+            match.status = PracticeMatch.Status.CONFIRMED
+            match.decided_at = timezone.now()
+            match.save(update_fields=["status", "decided_at"])
+            messages.success(request, "練習試合が確定しました。")
+        return redirect("received_matches")
+
+
+class MatchDeclineView(TeacherRequiredMixin, View):
+    """届いた申し込みを辞退する"""
+
+    def post(self, request, pk):
+        match = get_object_or_404(
+            PracticeMatch, pk=pk, opponent_club__school=request.user.school
+        )
+        if match.status != PracticeMatch.Status.PENDING:
+            messages.error(request, "この申し込みは、すでに処理されています。")
+        else:
+            match.status = PracticeMatch.Status.DECLINED
+            match.decided_at = timezone.now()
+            match.save(update_fields=["status", "decided_at"])
+            messages.success(request, "申し込みを辞退しました。")
+        return redirect("received_matches")

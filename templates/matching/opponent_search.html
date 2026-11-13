@@ -71,8 +71,7 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            <td><span class="status status--off">準備中</span></td>
-                        </tr>
+                            <td><a href="{% url 'match_request' selected_club.pk row.club.pk %}" class="btn">申し込む</a></td>                        </tr>
                     {% empty %}
                         <tr>
                             <td colspan="5">希望日が重なる相手校は、見つかりませんでした。</td>
@@ -99,8 +98,7 @@
                             <td>{{ row.school.name }}</td>
                             <td>{{ row.school.area.name|default:"—" }}</td>
                             <td>{% if row.distance is not None %}{{ row.distance }} km{% else %}—{% endif %}</td>
-                            <td><span class="status status--off">準備中</span></td>
-                        </tr>
+                            <td><a href="{% url 'match_request' selected_club.pk row.club.pk %}" class="btn">申し込む</a></td>                        </tr>
                     {% empty %}
                         <tr>
                             <td colspan="4">該当する相手校はありません。</td>

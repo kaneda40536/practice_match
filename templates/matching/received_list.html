@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}届いた申し込み｜練習試合調整支援システム{% endblock %}
+
+{% block content %}
+
+<div class="page-title">
+    <h2>届いた申し込み</h2>
+    <p>他校から届いた練習試合の申し込みを確認します。承認すると、練習試合が確定します</p>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>日程</th>
+                <th>申込校</th>
+                <th>会場</th>
+                <th>ひとこと</th>
+                <th>状態</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in matches %}
+                <tr>
+                    <td>{{ m.date|date:"Y年n月j日（D）" }}</td>
+                    <td>{{ m.applicant_club }}</td>
+                    <td>{{ m.venue_name }}</td>
+                    <td>{{ m.message|default:"—"|linebreaksbr }}</td>
+                    <td>
+                        {% if m.status == "pending" %}
+                            <span class="status status--wait">{{ m.get_status_display }}</span>
+                        {% elif m.status == "confirmed" %}
+                            <span class="status status--on">{{ m.get_status_display }}</span>
+                        {% else %}
+                            <span class="status status--off">{{ m.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m.status == "pending" %}
+                            <form method="post" action="{% url 'match_approve' m.pk %}" class="inline-form"
+                                  onsubmit="return confirm('承認すると、練習試合が確定します。よろしいですか？');">
+                                {% csrf_token %}
+                                <button type="submit">承認</button>
+                            </form>
+                            <form method="post" action="{% url 'match_decline' m.pk %}" class="inline-form"
+                                  onsubmit="return confirm('この申し込みを辞退します。よろしいですか？');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn--danger">辞退</button>
+                            </form>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">届いている申し込みはありません。</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="back-login">
+    <a href="{% url 'teacher_home' %}">← 学校メニューに戻る</a>
+</div>
+
+{% endblock %}
