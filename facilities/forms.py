@@ -24,6 +24,7 @@ class FacilityForm(SchoolLocationMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["sports"].queryset = Sport.objects.order_by("name")
+        self.fields["sports"].label_from_instance = lambda s: f"{s.display_icon} {s.name}"
 
     def clean_name(self):
         name = self.cleaned_data["name"]

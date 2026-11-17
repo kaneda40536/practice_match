@@ -85,8 +85,8 @@
                 <tbody>
                     {% for club in clubs %}
                         <tr>
-                            <td class="club-name-cell">{{ club.get_gender_display }}{{ club.sport.name }}部</td>
-                            <td><span class="club-sport-label">{{ club.sport.name }}</span></td>
+                            <td class="club-name-cell">{{ club.name }}</td>
+                            <td><span class="club-sport-label">{{ club.sport.display_icon }} {{ club.sport.name }}</span></td>
                             <td>
                                 {% if club.date_count %}
                                     {{ club.date_count }}日
@@ -99,7 +99,7 @@
                                     <a href="{% url 'club_availability' club.pk %}" class="club-edit-button">希望日</a>
 
                                     <form method="post" action="{% url 'my_club_delete' club.pk %}"
-                                          onsubmit="return confirm('「{{ club.get_gender_display }}{{ club.sport.name }}部」を削除しますか？\n登録した希望日や、この部活動の練習試合の申し込みも削除されます。');">
+                                          onsubmit="return confirm('「{{ club.name }}」を削除しますか？\n登録した希望日や、この部活動の練習試合の申し込みも削除されます。');">
                                         {% csrf_token %}
                                         <button type="submit" class="club-delete-button">削除</button>
                                     </form>

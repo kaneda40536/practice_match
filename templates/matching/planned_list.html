@@ -41,7 +41,7 @@
                         <tr>
                             <td class="planned-date">{{ row.match.date|date:"Y年n月j日（D）" }}</td>
                             <td>{{ row.other_club.school.name }}</td>
-                            <td>{{ row.my_club.get_gender_display }}{{ row.my_club.sport.name }}部</td>
+                            <td>{{ row.my_club.name }}</td>
                             <td>{{ row.match.venue_name }}</td>
                             <td>
                                 {% if row.can_record %}
@@ -52,10 +52,10 @@
                             </td>
                             <td>
                                 <div class="table-actions">
-                                    {% if row.can_record %}
+                                    {% if row.needs_my_score %}
                                         <a href="{% url 'match_result_edit' row.match.pk %}" class="planned-result-button">結果を登録</a>
                                     {% endif %}
-                                    <a href="{% url 'message_room' row.other_club.school.pk %}" class="action-button secondary">✉ メッセージ</a>
+                                    <a href="{% url 'match_conversation' row.match.pk %}" class="action-button secondary">✉ メッセージ</a>
                                 </div>
                             </td>
                         </tr>
@@ -67,7 +67,7 @@
         <div class="planned-empty">
             <div class="planned-empty-icon">📅</div>
             <h4>予定試合はありません</h4>
-            <p>相手校が申し込みを承認するか、届いた申し込みを承認すると、ここに表示されます。</p>
+            <p>申し込みの候補日が確定すると、ここに表示されます。</p>
         </div>
     {% endif %}
 </section>
@@ -77,7 +77,7 @@
     <div class="planned-section-heading">
         <div>
             <h3>終わった試合（{{ past|length }}件）</h3>
-            <p>試合が終わったら、結果を登録してください。どちらの学校からでも登録・編集できます。</p>
+            <p>試合が終わったら、自校の得点を登録してください。相手校の得点は相手校が登録します。</p>
         </div>
     </div>
 
@@ -99,7 +99,7 @@
                         <tr>
                             <td class="planned-date">{{ row.match.date|date:"Y年n月j日（D）" }}</td>
                             <td>{{ row.other_club.school.name }}</td>
-                            <td>{{ row.my_club.get_gender_display }}{{ row.my_club.sport.name }}部</td>
+                            <td>{{ row.my_club.name }}</td>
                             <td>{{ row.match.venue_name }}</td>
                             <td>
                                 {% if row.result %}
@@ -109,9 +109,12 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'match_result_edit' row.match.pk %}" class="planned-result-button">
-                                    {% if row.result %}結果を編集{% else %}結果を登録{% endif %}
-                                </a>
+                                <div class="table-actions">
+                                    {% if row.needs_my_score %}
+                                        <a href="{% url 'match_result_edit' row.match.pk %}" class="planned-result-button">結果を登録</a>
+                                    {% endif %}
+                                    <a href="{% url 'match_conversation' row.match.pk %}" class="action-button secondary">✉ メッセージ</a>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}

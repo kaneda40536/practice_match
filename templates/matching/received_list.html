@@ -6,78 +6,99 @@
 
 {% block content %}
 
-<div class="received-heading">
+<div class="welcome-area">
     <div>
-        <p class="received-eyebrow">APPLICATIONS</p>
-        <h2>届いた申し込み</h2>
-        <p>他校から届いた練習試合の申し込みを確認できます。承認すると、練習試合が確定します。</p>
+        <h2>届いている申し込み</h2>
+        <p>他校から届いた候補日を確認し、試合日を決定できます。</p>
     </div>
 </div>
 
-<section class="received-section">
-    <div class="received-section-heading">
-        <div>
-            <h3>申し込み一覧</h3>
-            <p>申し込み内容を確認して、承認または辞退を選択してください。</p>
+{% for proposal in pending %}
+    <div class="admin-section-card">
+        <div class="dashboard-menu-heading">
+            <h2>
+                {{ proposal.applicant_club.school.name }}
+                <span class="status-badge status-{{ proposal.status }}">{{ proposal.get_status_display }}</span>
+            </h2>
+            <p>申し込み日時：{{ proposal.created_at|date:"Y年n月j日 H:i" }}</p>
         </div>
+
+        {% include "matching/_proposal_details.html" with proposal=proposal side="received" %}
+
+        <p class="proposal-message-link">
+            <a href="{% url 'match_conversation' proposal.pk %}">✉ この申し込みについてメッセージを送る</a>
+        </p>
+
+        <hr>
+
+        <h3>確定する候補日を選択</h3>
+
+        {% if proposal.open_candidates %}
+            <p>以下から試合を行う日を1日選択してください。</p>
+
+            <form method="post" action="{% url 'match_respond' proposal.pk %}">
+                {% csrf_token %}
+
+                <div class="candidate-options">
+                    {% for candidate in proposal.open_candidates %}
+                        <label class="form-group candidate-option">
+                            <input type="radio" name="candidate_date_id" value="{{ candidate.pk }}" required>
+                            <span>{{ candidate.date|date:"Y年n月j日（D）" }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div class="form-actions proposal-actions">
+                    <button type="submit" name="action" value="approve" class="received-approve"
+                            onclick="return confirm('選択した日程で練習試合を確定します。よろしいですか？');">
+                        選択した日程で確定
+                    </button>
+                    <button type="submit" name="action" value="reject" class="received-reject" formnovalidate
+                            onclick="return confirm('この申し込みをお断りしますか？');">
+                        お断りする
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <p class="notice-box">候補日がすべて過ぎています。メッセージで日程を相談するか、お断りしてください。</p>
+            <form method="post" action="{% url 'match_respond' proposal.pk %}" class="proposal-actions">
+                {% csrf_token %}
+                <button type="submit" name="action" value="reject" class="received-reject"
+                        onclick="return confirm('この申し込みをお断りしますか？');">お断りする</button>
+            </form>
+        {% endif %}
+    </div>
+{% empty %}
+    <div class="admin-section-card">
+        <h2>返事を待っている申し込みはありません</h2>
+        <p>他校から申し込みが届くと、ここに表示されます。</p>
+    </div>
+{% endfor %}
+
+{% if answered %}
+    <div class="dashboard-menu-heading" style="margin-top: 38px;">
+        <h2>返事をした申し込み</h2>
+        <p>確定、またはお断りした申し込みです。</p>
     </div>
 
-    {% if matches %}
-        <div class="received-table-wrap">
-            <table class="received-table">
-                <thead>
-                    <tr>
-                        <th>申し込み元</th>
-                        <th>部活動</th>
-                        <th>試合予定日</th>
-                        <th>会場</th>
-                        <th>ひとこと</th>
-                        <th>状態</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for match in matches %}
-                        <tr>
-                            <td>{{ match.applicant_club.school.name }}</td>
-                            <td>{{ match.applicant_club.get_gender_display }}{{ match.applicant_club.sport.name }}部</td>
-                            <td class="received-date">{{ match.date|date:"Y年n月j日（D）" }}</td>
-                            <td>{{ match.venue_name }}</td>
-                            <td>{{ match.message|default:"—"|linebreaksbr }}</td>
-                            <td>
-                                <span class="received-status {{ match.status }}">{{ match.get_status_display }}</span>
-                            </td>
-                            <td class="received-actions">
-                                {% if match.status == "pending" %}
-                                    <div class="table-actions">
-                                        <form method="post" action="{% url 'match_approve' match.pk %}"
-                                              onsubmit="return confirm('承認すると、練習試合が確定します。よろしいですか？');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="received-approve">承認</button>
-                                        </form>
-                                        <form method="post" action="{% url 'match_decline' match.pk %}"
-                                              onsubmit="return confirm('この申し込みを辞退します。よろしいですか？');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="received-reject">辞退</button>
-                                        </form>
-                                    </div>
-                                {% else %}
-                                    <span class="received-completed">返答済み</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    {% for proposal in answered %}
+        <div class="admin-section-card">
+            <div class="dashboard-menu-heading">
+                <h2>
+                    {{ proposal.applicant_club.school.name }}
+                    <span class="status-badge status-{{ proposal.status }}">{{ proposal.get_status_display }}</span>
+                </h2>
+                <p>申し込み日時：{{ proposal.created_at|date:"Y年n月j日 H:i" }}</p>
+            </div>
+
+            {% include "matching/_proposal_details.html" with proposal=proposal side="received" %}
+
+            <p class="proposal-message-link">
+                <a href="{% url 'match_conversation' proposal.pk %}">✉ この申し込みについてメッセージを送る</a>
+            </p>
         </div>
-    {% else %}
-        <div class="received-empty">
-            <div class="received-empty-icon">✉</div>
-            <h4>申し込みはありません</h4>
-            <p>現在、届いている申し込みはありません。</p>
-        </div>
-    {% endif %}
-</section>
+    {% endfor %}
+{% endif %}
 
 <div class="received-back">
     <a href="{% url 'teacher_home' %}">← 学校ホームに戻る</a>

@@ -42,7 +42,7 @@
         <select name="sport" aria-label="競技">
             <option value="">すべての競技</option>
             {% for sport in sports %}
-                <option value="{{ sport.pk }}"{% if sport.pk|stringformat:"s" == selected.sport %} selected{% endif %}>{{ sport.name }}</option>
+                <option value="{{ sport.pk }}"{% if sport.pk|stringformat:"s" == selected.sport %} selected{% endif %}>{{ sport.display_icon }} {{ sport.name }}</option>
             {% endfor %}
         </select>
 
@@ -79,8 +79,8 @@
                                     <span class="unregistered">—</span>
                                 {% endif %}
                             </td>
-                            <td><span class="club-name">{{ club.get_gender_display }}{{ club.sport.name }}部</span></td>
-                            <td><span class="club-sport-label">{{ club.sport.name }}</span></td>
+                            <td><span class="club-name">{{ club.name }}</span></td>
+                            <td><span class="club-sport-label">{{ club.sport.display_icon }} {{ club.sport.name }}</span></td>
                         </tr>
                     {% endfor %}
                 </tbody>

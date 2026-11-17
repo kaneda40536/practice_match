@@ -1,0 +1,33 @@
+{% comment %}
+    申し込みの詳細（届いた申し込み・申し込んだ試合 共通）
+    proposal : PracticeMatch
+    side     : "received"（届いた側から見る）/ "sent"（申し込んだ側から見る）
+{% endcomment %}
+<div class="detail-list">
+    {% if side == "received" %}
+        <p><strong>申し込み部活動：</strong>{{ proposal.applicant_club.name }}</p>
+        <p><strong>競技：</strong>{{ proposal.applicant_club.sport.display_icon }} {{ proposal.applicant_club.sport.name }}</p>
+        <p><strong>自校の対象部活動：</strong>{{ proposal.opponent_club.name }}</p>
+    {% else %}
+        <p><strong>自校の部活動：</strong>{{ proposal.applicant_club.name }}</p>
+        <p><strong>競技：</strong>{{ proposal.applicant_club.sport.display_icon }} {{ proposal.applicant_club.sport.name }}</p>
+        <p><strong>申し込み先の部活動：</strong>{{ proposal.opponent_club.name }}</p>
+    {% endif %}
+    <p><strong>会場：</strong>{{ proposal.venue_name }}</p>
+    <p><strong>備考：</strong>{% if proposal.message %}{{ proposal.message|linebreaksbr }}{% else %}なし{% endif %}</p>
+</div>
+
+{% if proposal.status == "confirmed" %}
+    <div class="detail-list confirmed-date">
+        <p><strong>確定した試合日：</strong>{{ proposal.date|date:"Y年n月j日（D）" }}</p>
+    </div>
+{% else %}
+    <div class="proposal-candidates">
+        <span class="proposal-candidates-label">候補日</span>
+        {% for candidate in proposal.candidates.all %}
+            <div class="form-group"><p>{{ candidate.date|date:"Y年n月j日（D）" }}</p></div>
+        {% empty %}
+            <p>候補日は登録されていません。</p>
+        {% endfor %}
+    </div>
+{% endif %}

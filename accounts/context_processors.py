@@ -30,7 +30,7 @@ def teacher_badges(school):
     from matching.models import Message, PracticeMatch
 
     return {
-        "unread_messages": Message.objects.filter(receiver=school, is_read=False).count(),
+        "unread_messages": Message.unread_for(school).count(),
         "pending_received": PracticeMatch.objects.filter(
             opponent_club__school=school, status=PracticeMatch.Status.PENDING
         ).count(),

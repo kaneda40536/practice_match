@@ -6,71 +6,43 @@
 
 {% block content %}
 
-<div class="applied-heading">
+<div class="welcome-area">
     <div>
-        <p class="applied-eyebrow">MY APPLICATIONS</p>
         <h2>申し込んだ試合</h2>
-        <p>他校へ申し込んだ練習試合の状況を確認できます。</p>
+        <p>自校から他校へ送信した候補日付き申し込みを確認できます。</p>
     </div>
 </div>
 
-<section class="applied-section">
-    <div class="applied-section-heading">
-        <div>
-            <h3>申し込み状況一覧</h3>
-            <p>相手校の返事を待っている申し込みは、取り下げることができます。</p>
+{% for proposal in proposals %}
+    <div class="admin-section-card">
+        <div class="dashboard-menu-heading">
+            <h2>
+                {{ proposal.opponent_club.school.name }}
+                <span class="status-badge status-{{ proposal.status }}">{{ proposal.get_status_display }}</span>
+            </h2>
+            <p>申し込み日時：{{ proposal.created_at|date:"Y年n月j日 H:i" }}</p>
+        </div>
+
+        {% include "matching/_proposal_details.html" with proposal=proposal side="sent" %}
+
+        <div class="proposal-footer">
+            <a href="{% url 'match_conversation' proposal.pk %}" class="proposal-message-link">✉ この申し込みについてメッセージを送る</a>
+
+            {% if proposal.status == "pending" %}
+                <form method="post" action="{% url 'match_withdraw' proposal.pk %}"
+                      onsubmit="return confirm('この申し込みを取り下げます。よろしいですか？');">
+                    {% csrf_token %}
+                    <button type="submit" class="action-button danger">申し込みを取り下げる</button>
+                </form>
+            {% endif %}
         </div>
     </div>
-
-    {% if matches %}
-        <div class="applied-table-wrap">
-            <table class="applied-table">
-                <thead>
-                    <tr>
-                        <th>相手校</th>
-                        <th>自校の部活動</th>
-                        <th>試合予定日</th>
-                        <th>会場</th>
-                        <th>状態</th>
-                        <th>申込日時</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for match in matches %}
-                        <tr>
-                            <td>{{ match.opponent_club.school.name }}</td>
-                            <td>{{ match.applicant_club.get_gender_display }}{{ match.opponent_club.sport.name }}部</td>
-                            <td class="applied-date">{{ match.date|date:"Y年n月j日（D）" }}</td>
-                            <td>{{ match.venue_name }}</td>
-                            <td>
-                                <span class="applied-status {{ match.status }}">{{ match.get_status_display }}</span>
-                            </td>
-                            <td>{{ match.created_at|date:"n/j H:i" }}</td>
-                            <td>
-                                {% if match.status == "pending" %}
-                                    <form method="post" action="{% url 'match_withdraw' match.pk %}"
-                                          onsubmit="return confirm('この申し込みを取り下げます。よろしいですか？');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="action-button danger">取り下げ</button>
-                                    </form>
-                                {% else %}
-                                    <span class="muted">—</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="applied-empty">
-            <div class="applied-empty-icon">📋</div>
-            <h4>申し込みはありません</h4>
-            <p>現在、申し込んだ試合はありません。<a href="{% url 'opponent_search' %}">対戦相手を検索</a>して申し込めます。</p>
-        </div>
-    {% endif %}
-</section>
+{% empty %}
+    <div class="admin-section-card">
+        <h2>申し込み履歴はありません</h2>
+        <p>現在、自校から送信した候補日付き申し込みはありません。<a href="{% url 'opponent_search' %}">対戦相手を検索</a>して申し込めます。</p>
+    </div>
+{% endfor %}
 
 <div class="applied-back">
     <a href="{% url 'teacher_home' %}">← 学校ホームに戻る</a>

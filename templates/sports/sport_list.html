@@ -39,7 +39,7 @@
         {% for sport in sports %}
             <article class="sport-item-card">
                 <div class="sport-card-main">
-                    <div class="sport-icon-box">⚽</div>
+                    <div class="sport-icon-box">{{ sport.display_icon }}</div>
                     <div class="sport-card-info">
                         <span class="sport-card-label">SPORT</span>
                         <h4>{{ sport.name }}</h4>
@@ -53,7 +53,7 @@
             </article>
         {% empty %}
             <div class="sport-empty">
-                <div class="sport-empty-icon">⚽</div>
+                <div class="sport-empty-icon">🏅</div>
                 <h3>競技が登録されていません</h3>
                 <p>「新しい競技を登録」から競技を追加してください。</p>
             </div>

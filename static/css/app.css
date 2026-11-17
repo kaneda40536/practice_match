@@ -799,3 +799,286 @@ a.schedule-apply-button {
     clip: rect(0 0 0 0);
     white-space: nowrap;
 }
+
+
+/* ========================================
+   2026-11-17 デザイン更新への対応
+   （候補日付き申し込み・各校の試合結果・部活動ごとの会話）
+======================================== */
+
+/* ---------- 状態バッジ ---------- */
+/* デザインは .status-申込中 のように表示名でクラスを付けているため、
+   内部の値（pending / confirmed / declined）でも同じ色になるようにする */
+
+.status-pending {
+    color: #b86b12;
+    background: #fff1d9;
+}
+
+.status-confirmed {
+    color: #21834b;
+    background: #e2f5e9;
+}
+
+.status-declined {
+    color: #c43d3d;
+    background: #fde8e8;
+}
+
+.admin-section-card .dashboard-menu-heading h2 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.admin-section-card .status-badge {
+    font-size: 13px;
+}
+
+
+/* ---------- 申し込みカード ---------- */
+
+.proposal-candidates {
+    margin-top: 18px;
+}
+
+.proposal-candidates-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #193852;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.detail-list.confirmed-date {
+    margin-top: 15px;
+}
+
+.detail-list.confirmed-date p {
+    background: #e2f5e9;
+    color: #21834b;
+    font-weight: bold;
+}
+
+.proposal-message-link {
+    display: inline-block;
+    margin-top: 18px;
+    color: #2d669e;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.proposal-message-link a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.proposal-message-link:hover,
+.proposal-message-link a:hover {
+    text-decoration: underline;
+}
+
+.proposal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.proposal-footer form {
+    margin: 18px 0 0;
+}
+
+.proposal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.proposal-actions button {
+    margin: 0;
+}
+
+
+/* ---------- 候補日の選択（届いた申し込み・申し込み画面） ---------- */
+
+.candidate-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 12px 0 8px;
+}
+
+.candidate-option {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+    margin: 0 !important;
+    padding: 11px 16px;
+    border: 1px solid #d8e6f5;
+    border-radius: 9px;
+    background: #f5f9fe;
+    color: #24486b;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.candidate-option:hover {
+    border-color: #3478d4;
+}
+
+.candidate-option:has(input:checked) {
+    border-color: #3478d4;
+    background: #e2eeff;
+    box-shadow: 0 0 0 2px rgba(52, 120, 212, 0.15);
+}
+
+.candidate-option input {
+    width: 17px;
+    max-width: none;
+    height: 17px;
+    margin: 0;
+}
+
+.candidate-option small {
+    display: block;
+    color: #27945b;
+    font-size: 11px;
+    font-weight: normal;
+}
+
+.candidate-group-title {
+    margin: 18px 0 6px;
+    color: #334155;
+    font-size: 14px;
+}
+
+.candidate-other-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.candidate-other-dates input {
+    width: auto;
+    max-width: none;
+    height: 44px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+    background: #fbfcfe;
+    font-size: 14px;
+}
+
+
+/* ---------- 試合結果 ---------- */
+
+.outcome-pending {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.detail-list.their-result {
+    margin-top: 18px;
+}
+
+
+/* ---------- 会話 ---------- */
+
+.conversation-kind {
+    display: inline-block;
+    margin: 4px 0;
+    padding: 2px 9px;
+    border-radius: 10px;
+    background: #eef2f7;
+    color: #64748b;
+    font-size: 11px;
+}
+
+.conversation-kind.kind-proposal {
+    background: #e2eeff;
+    color: #2d669e;
+}
+
+.conversation-kind.kind-free {
+    background: #e7f7ee;
+    color: #27945b;
+}
+
+.message-room-header {
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.message-room-header p {
+    margin: 0 0 6px;
+    color: #334155;
+    font-weight: bold;
+}
+
+.message-room-match {
+    margin-bottom: 18px;
+}
+
+.message-room-match p {
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #f5f8fc;
+    color: #31516d;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.message-start-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px;
+}
+
+.message-start-form .messages-school-item {
+    flex: 1;
+    min-width: 240px;
+    margin: 0;
+}
+
+.message-start-form .messages-school-info,
+.message-start-form .messages-school-info > div {
+    width: 100%;
+}
+
+.message-start-form label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.message-start-form select {
+    width: 100%;
+    max-width: none;
+    height: 44px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+    background: #fbfcfe;
+    font-size: 14px;
+}
+
+
+/* ---------- 日程調整 ---------- */
+
+.schedule-apply-all {
+    margin: 0 0 18px;
+    border-color: #c9e8d5;
+    background: #f0faf4;
+    color: #1f6b43;
+}

@@ -2191,3 +2191,126 @@ textarea:focus {
     margin-top: 30px;
 }
 
+
+/* =================================
+   申し込み履歴
+================================= */
+
+.admin-section-card {
+    background: #ffffff;
+    border: 1px solid #e1e8f0;
+    border-radius: 16px;
+    padding: 30px;
+    margin-top: 28px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 15px rgba(25, 56, 82, 0.05);
+}
+
+/* 申し込み先・申し込み日時 */
+.admin-section-card .dashboard-menu-heading {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e8edf3;
+}
+
+.admin-section-card .dashboard-menu-heading h2 {
+    color: #193852;
+    font-size: 23px;
+    margin-bottom: 8px;
+}
+
+.admin-section-card .dashboard-menu-heading p {
+    color: #8293a7;
+    font-size: 14px;
+}
+
+/* 申し込み詳細 */
+.admin-section-card .detail-list {
+    display: grid;
+    gap: 15px;
+}
+
+.admin-section-card .detail-list p {
+    margin: 0;
+    padding: 12px 16px;
+    background: #f5f8fc;
+    border-radius: 8px;
+    color: #31516d;
+    line-height: 1.7;
+}
+
+.admin-section-card .detail-list strong {
+    color: #193852;
+}
+
+/* 区切り線 */
+.admin-section-card hr {
+    border: none;
+    border-top: 1px solid #e5ebf2;
+    margin: 25px 0;
+}
+
+/* 候補日 */
+.admin-section-card h3 {
+    color: #193852;
+    font-size: 19px;
+    margin-bottom: 16px;
+}
+
+.admin-section-card .form-group {
+    display: inline-block;
+    background: #edf4fc;
+    border: 1px solid #d8e6f5;
+    border-radius: 8px;
+    padding: 10px 18px;
+    margin: 5px 8px 5px 0;
+}
+
+.admin-section-card .form-group p {
+    margin: 0;
+    color: #315d85;
+    font-weight: 600;
+}
+
+
+/* 申し込みステータス */
+.status-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-left: 8px;
+}
+
+/* 申込中：オレンジ */
+.status-申込中 {
+    color: #b86b12;
+    background: #fff1d9;
+}
+
+/* 確定：グリーン */
+.status-確定 {
+    color: #21834b;
+    background: #e2f5e9;
+}
+
+/* 却下：レッド */
+.status-却下 {
+    color: #c43d3d;
+    background: #fde8e8;
+}
+
+.my-school-score {
+    color: #066eed;
+    font-weight: bold;
+}
+
+
+/* 部活動一覧テーブルの見出し */
+.club-table thead th {
+    background-color: #263849;
+    color: #ffffff;
+    font-weight: 700;
+}
+

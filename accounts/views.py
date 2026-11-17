@@ -108,7 +108,7 @@ class TeacherHomeView(TeacherRequiredMixin, TemplateView):
                  status=PracticeMatch.Status.CONFIRMED, date__gte=today).count(),
              "unit": "件", "note": "今日以降に確定している試合"},
             {"label": "未読メッセージ", "icon": "✉", "color": "purple",
-             "value": Message.objects.filter(receiver=school, is_read=False).count(),
+             "value": Message.unread_for(school).count(),
              "unit": "件", "note": "まだ読んでいない他校からのメッセージ"},
         ]
         return context

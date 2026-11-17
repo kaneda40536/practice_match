@@ -14,27 +14,33 @@
     </div>
 </div>
 
-<!-- 過去の会話 -->
+<!-- 会話 -->
 <section class="messages-section">
     <div class="messages-section-heading">
         <div>
-            <h3>会話</h3>
+            <h3>過去の会話</h3>
             <p>新しいメッセージがある会話から順に並んでいます。</p>
         </div>
     </div>
 
     {% if conversations %}
         <div class="messages-list">
-            {% for conv in conversations %}
-                <a href="{% url 'message_room' conv.school.pk %}" class="messages-conversation{% if conv.unread %} has-unread{% endif %}">
-                    <div class="messages-school-icon">{{ conv.school.name|first }}</div>
+            {% for row in conversations %}
+                <a href="{% url 'message_room' row.conversation.pk %}" class="messages-conversation{% if row.unread %} has-unread{% endif %}">
+                    <div class="messages-school-icon">{{ row.school.name|first }}</div>
                     <div class="messages-conversation-content">
                         <strong>
-                            {{ conv.school.name }}
-                            {% if conv.unread %}<span class="unread-badge">未読 {{ conv.unread }}</span>{% endif %}
+                            {{ row.school.name }}
+                            {% if row.unread %}<span class="unread-badge">未読 {{ row.unread }}</span>{% endif %}
                         </strong>
-                        <p>{% if conv.last_is_mine %}あなた：{% endif %}{{ conv.last_message.content|truncatechars:50 }}</p>
-                        <small>{{ conv.last_message.created_at|date:"Y/m/d H:i" }}</small>
+                        {% if row.my_club and row.other_club %}
+                            <p>{{ row.my_club.name }} → {{ row.school.name }} {{ row.other_club.name }}</p>
+                        {% endif %}
+                        <small class="conversation-kind kind-{{ row.kind }}">{{ row.kind_label }}</small>
+                        {% if row.last_message %}
+                            <p>{% if row.last_is_mine %}あなた：{% endif %}{{ row.last_message.content|truncatechars:50 }}</p>
+                            <small>{{ row.last_message.created_at|date:"Y/m/d H:i" }}</small>
+                        {% endif %}
                     </div>
                     <span class="messages-arrow">›</span>
                 </a>
@@ -44,7 +50,7 @@
         <div class="messages-empty">
             <div class="messages-empty-icon">✉</div>
             <h4>まだ会話はありません</h4>
-            <p>下の一覧から学校を選んで、メッセージを開始できます。</p>
+            <p>下のフォームから、相手校の部活動を選んでメッセージを開始できます。</p>
         </div>
     {% endif %}
 </section>
@@ -54,32 +60,40 @@
     <div class="messages-section-heading">
         <div>
             <h3>新しいメッセージを開始</h3>
-            <p>連絡を取りたい学校を選択してください。練習試合でやり取りのある学校が先頭に表示されます。</p>
+            <p>連絡に使用する自校と相手校の部活動を選択してください。練習試合の申し込みについての会話は、各申し込みの画面から開けます。</p>
         </div>
     </div>
 
-    {% if available_schools %}
-        <div class="messages-school-list">
-            {% for school in available_schools %}
-                <div class="messages-school-item">
-                    <div class="messages-school-info">
-                        <div class="messages-school-icon">{{ school.name|first }}</div>
-                        <div>
-                            <strong>{{ school.name }}</strong>
-                            <p>
-                                {{ school.area.name|default:"地域未登録" }}
-                                {% if school.pk in partner_ids %}・練習試合のやり取りあり{% endif %}
-                            </p>
-                        </div>
-                    </div>
-                    <a href="{% url 'message_room' school.pk %}" class="messages-start-button">メッセージを開始</a>
-                </div>
-            {% endfor %}
+    {% if not start_form.fields.my_club.queryset.exists %}
+        <div class="messages-empty">
+            <p>部活動が登録されていません。<a href="{% url 'my_club_list' %}">部活動管理</a>から登録してください。</p>
         </div>
     {% else %}
-        <div class="messages-empty">
-            <p>新しくメッセージを開始できる学校はありません。</p>
-        </div>
+        <form method="post" action="{% url 'message_start' %}" class="message-start-form">
+            {% csrf_token %}
+
+            <div class="messages-school-item">
+                <div class="messages-school-info">
+                    <div>
+                        <label for="{{ start_form.my_club.id_for_label }}"><strong>{{ start_form.my_club.label }}</strong></label>
+                        {{ start_form.my_club }}
+                        {% for error in start_form.my_club.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="messages-school-item">
+                <div class="messages-school-info">
+                    <div>
+                        <label for="{{ start_form.opponent_club.id_for_label }}"><strong>{{ start_form.opponent_club.label }}</strong></label>
+                        {{ start_form.opponent_club }}
+                        {% for error in start_form.opponent_club.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="messages-start-button">メッセージを開始</button>
+        </form>
     {% endif %}
 </section>
 

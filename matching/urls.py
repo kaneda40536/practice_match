@@ -14,8 +14,8 @@ urlpatterns = [
     path("sent/", views.SentMatchListView.as_view(), name="sent_matches"),
     path("received/", views.ReceivedMatchListView.as_view(), name="received_matches"),
     path("matches/<int:pk>/withdraw/", views.MatchWithdrawView.as_view(), name="match_withdraw"),
-    path("matches/<int:pk>/approve/", views.MatchApproveView.as_view(), name="match_approve"),
-    path("matches/<int:pk>/decline/", views.MatchDeclineView.as_view(), name="match_decline"),
+    path("matches/<int:pk>/respond/", views.MatchRespondView.as_view(), name="match_respond"),
+    path("matches/<int:pk>/conversation/", views.MatchConversationView.as_view(), name="match_conversation"),
 
     # 日程調整
     path("schedule/", views.ScheduleView.as_view(), name="schedule"),
@@ -28,5 +28,6 @@ urlpatterns = [
 
     # メッセージ
     path("messages/", views.MessageListView.as_view(), name="message_list"),
-    path("messages/<int:school_pk>/", views.MessageRoomView.as_view(), name="message_room"),
+    path("messages/start/", views.ConversationStartView.as_view(), name="message_start"),
+    path("messages/<int:pk>/", views.MessageRoomView.as_view(), name="message_room"),
 ]

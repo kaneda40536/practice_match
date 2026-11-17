@@ -60,7 +60,7 @@
                             <td>
                                 <div class="facility-sports">
                                     {% for sport in facility.sports.all %}
-                                        <span class="facility-sport-label">{{ sport.name }}</span>
+                                        <span class="facility-sport-label">{{ sport.display_icon }} {{ sport.name }}</span>
                                     {% empty %}
                                         <span class="facility-no-sport">未登録</span>
                                     {% endfor %}

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -7,9 +8,14 @@ from django.views.generic import CreateView, ListView, TemplateView, View
 
 from accounts.views import TeacherRequiredMixin
 from schools.distance import distance_km
-from schools.models import Area, Club, School
-from .forms import AvailabilityForm, MatchRequestForm, MatchResultForm, MessageForm
-from .models import Availability, MatchResult, Message, PracticeMatch
+from schools.models import Area, Club
+from .forms import (
+    MAX_CANDIDATES, AvailabilityForm, ConversationStartForm, MatchRequestForm,
+    MatchResultForm, MessageForm,
+)
+from .models import (
+    Availability, CandidateDate, Conversation, MatchResult, Message, PracticeMatch,
+)
 
 # ---------- 希望日の登録 ----------
 
@@ -164,7 +170,7 @@ class OpponentSearchView(TeacherRequiredMixin, TemplateView):
 # ---------- 練習試合の申し込み ----------
 
 class MatchRequestView(TeacherRequiredMixin, CreateView):
-    """相手校の部活動を選んで、日程と会場を提案し、申し込む"""
+    """相手校の部活動を選んで、候補日（複数）と会場を提案し、申し込む"""
     form_class = MatchRequestForm
     template_name = "matching/match_request.html"
     success_url = reverse_lazy("sent_matches")
@@ -186,14 +192,6 @@ class MatchRequestView(TeacherRequiredMixin, CreateView):
             self._clubs = (applicant, opponent)
         return self._clubs
 
-    def get_initial(self):
-        # 日程調整の画面から「この日程で申し込む」で来たときは、その日付を入れておく
-        initial = super().get_initial()
-        date = self.request.GET.get("date", "")
-        if date:
-            initial["date"] = date
-        return initial
-
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         applicant, opponent = self.get_clubs()
@@ -204,59 +202,83 @@ class MatchRequestView(TeacherRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         applicant, opponent = self.get_clubs()
+        form = context["form"]
 
-        # 共通の希望日
+        # 共通の希望日（チェックボックスで選べるようにする）
         mine = {
             a.date: a
             for a in Availability.objects.filter(club=applicant, date__gte=timezone.localdate())
         }
         theirs = Availability.objects.filter(club=opponent, date__in=list(mine)).order_by("date")
-
-        context["applicant"] = applicant
-        context["opponent"] = opponent
-        context["common_dates"] = [
+        common = [
             {"date": a.date, "my_host": mine[a.date].can_host, "their_host": a.can_host}
             for a in theirs
         ]
-        context["candidates"] = context["form"].candidates
+
+        # チェック済みにする日：送信した内容、または日程調整の画面から来たときの ?date=
+        if form.is_bound:
+            checked = set(form.data.getlist("candidate_dates"))
+        else:
+            checked = set(self.request.GET.getlist("date"))
+        common_iso = {c["date"].isoformat() for c in common}
+        for c in common:
+            c["checked"] = c["date"].isoformat() in checked
+        # 共通の希望日以外で入力された日は、「その他の候補日」の欄に戻す
+        others = sorted(d for d in checked if d not in common_iso)
+
+        context.update({
+            "applicant": applicant,
+            "opponent": opponent,
+            "common_dates": common,
+            "other_dates": others + [""] * max(0, 3 - len(others)),
+            "candidates": form.candidates,
+            "max_candidates": MAX_CANDIDATES,
+            "today": timezone.localdate(),
+        })
         return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, "練習試合を申し込みました。相手校の承認をお待ちください。")
+        messages.success(self.request, "練習試合を申し込みました。相手校が候補日を選ぶと確定します。")
         return response
 
 
+def proposal_queryset():
+    return PracticeMatch.objects.select_related(
+        "applicant_club__school", "applicant_club__sport",
+        "opponent_club__school", "opponent_club__sport",
+        "facility", "conversation",
+    ).prefetch_related("candidates")
+
+
 class SentMatchListView(TeacherRequiredMixin, ListView):
-    """申し込んだ試合の一覧"""
+    """申し込んだ試合（自校から送った申し込み）の一覧"""
     template_name = "matching/sent_list.html"
-    context_object_name = "matches"
+    context_object_name = "proposals"
 
     def get_queryset(self):
-        return (
-            PracticeMatch.objects.filter(applicant_club__school=self.request.user.school)
-            .select_related(
-                "applicant_club__school", "opponent_club__school",
-                "opponent_club__sport", "facility",
-            )
-            .order_by("-created_at")
-        )
+        return proposal_queryset().filter(
+            applicant_club__school=self.request.user.school
+        ).order_by("-created_at")
 
 
 class ReceivedMatchListView(TeacherRequiredMixin, ListView):
-    """届いた申し込みの一覧"""
+    """届いた申し込みの一覧。返事待ちのものを先に表示する"""
     template_name = "matching/received_list.html"
-    context_object_name = "matches"
+    context_object_name = "proposals"
 
     def get_queryset(self):
-        return (
-            PracticeMatch.objects.filter(opponent_club__school=self.request.user.school)
-            .select_related(
-                "applicant_club__school", "applicant_club__sport",
-                "opponent_club__school", "facility",
-            )
-            .order_by("-created_at")
-        )
+        return proposal_queryset().filter(opponent_club__school=self.request.user.school)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        proposals = list(context["proposals"])
+        today = timezone.localdate()
+        for p in proposals:
+            p.open_candidates = [c for c in p.candidates.all() if c.date >= today]
+        context["pending"] = [p for p in proposals if p.status == PracticeMatch.Status.PENDING]
+        context["answered"] = [p for p in proposals if p.status != PracticeMatch.Status.PENDING]
+        return context
 
 
 class MatchWithdrawView(TeacherRequiredMixin, View):
@@ -267,49 +289,51 @@ class MatchWithdrawView(TeacherRequiredMixin, View):
             PracticeMatch, pk=pk, applicant_club__school=request.user.school
         )
         if match.status != PracticeMatch.Status.PENDING:
-            messages.error(request, "承認または辞退された申し込みは、取り下げられません。")
+            messages.error(request, "確定またはお断りされた申し込みは、取り下げられません。")
         else:
             match.delete()
             messages.success(request, "申し込みを取り下げました。")
         return redirect("sent_matches")
 
 
-class MatchApproveView(TeacherRequiredMixin, View):
-    """届いた申し込みを承認する。承認すると練習試合が確定する"""
+class MatchRespondView(TeacherRequiredMixin, View):
+    """届いた申し込みに返事をする。候補日を1日選んで確定するか、お断りする"""
 
     def post(self, request, pk):
         match = get_object_or_404(
             PracticeMatch, pk=pk, opponent_club__school=request.user.school
         )
         if match.status != PracticeMatch.Status.PENDING:
-            messages.error(request, "この申し込みは、すでに処理されています。")
-        elif match.has_conflict():
-            messages.error(
-                request,
-                "この日は、どちらかの部活動に、すでに別の練習試合が確定しているため、承認できません。",
-            )
-        else:
-            match.status = PracticeMatch.Status.CONFIRMED
-            match.decided_at = timezone.now()
-            match.save(update_fields=["status", "decided_at"])
-            messages.success(request, "練習試合が確定しました。")
-        return redirect("received_matches")
+            messages.error(request, "この申し込みは、すでに返事をしています。")
+            return redirect("received_matches")
 
-
-class MatchDeclineView(TeacherRequiredMixin, View):
-    """届いた申し込みを辞退する"""
-
-    def post(self, request, pk):
-        match = get_object_or_404(
-            PracticeMatch, pk=pk, opponent_club__school=request.user.school
-        )
-        if match.status != PracticeMatch.Status.PENDING:
-            messages.error(request, "この申し込みは、すでに処理されています。")
-        else:
+        if request.POST.get("action") == "reject":
             match.status = PracticeMatch.Status.DECLINED
             match.decided_at = timezone.now()
             match.save(update_fields=["status", "decided_at"])
-            messages.success(request, "申し込みを辞退しました。")
+            messages.success(request, "申し込みをお断りしました。")
+            return redirect("received_matches")
+
+        candidate_id = request.POST.get("candidate_date_id", "")
+        candidate = (
+            match.selectable_candidates().filter(pk=candidate_id).first()
+            if candidate_id.isdigit() else None
+        )
+        if candidate is None:
+            messages.error(request, "確定する候補日を選んでください。")
+        elif match.has_conflict(candidate.date):
+            messages.error(
+                request,
+                f"{candidate.date.month}/{candidate.date.day} は、どちらかの部活動に別の練習試合が"
+                "確定しているため、選べません。ほかの候補日を選んでください。",
+            )
+        else:
+            match.date = candidate.date
+            match.status = PracticeMatch.Status.CONFIRMED
+            match.decided_at = timezone.now()
+            match.save(update_fields=["date", "status", "decided_at"])
+            messages.success(
+                request, f"{candidate.date.month}/{candidate.date.day} で練習試合が確定しました。")
         return redirect("received_matches")
 
 
@@ -334,11 +358,17 @@ def match_row(match, school, today):
         "my_club": match.my_club(school),
         "other_club": match.other_club(school),
         "result": result,
-        "can_record": match.date <= today,
+        "can_record": match.date is not None and match.date <= today,
+        "my_score": None,
+        "their_score": None,
+        "outcome": None,
+        "my_notes": "",
     }
     if result:
         row["my_score"], row["their_score"] = result.scores_for(school)
+        row["my_notes"], _ = result.notes_for(school)
         row["outcome"] = result.outcome_for(school)
+    row["needs_my_score"] = row["can_record"] and row["my_score"] is None
     return row
 
 
@@ -368,7 +398,7 @@ class PlannedMatchListView(TeacherRequiredMixin, TemplateView):
 # ---------- 試合結果 ----------
 
 class MatchResultListView(TeacherRequiredMixin, TemplateView):
-    """登録済みの試合結果と、結果がまだ登録されていない試合の一覧"""
+    """試合結果の一覧。自校の得点が未入力の試合は、別にまとめて表示する"""
     template_name = "matching/result_list.html"
 
     def get_context_data(self, **kwargs):
@@ -380,19 +410,19 @@ class MatchResultListView(TeacherRequiredMixin, TemplateView):
         ).order_by("-date")
 
         rows = [match_row(m, school, today) for m in finished]
-        results = [r for r in rows if r["result"]]
-        context["results"] = results
-        context["unrecorded"] = [r for r in rows if not r["result"]]
+        context["unrecorded"] = [r for r in rows if r["my_score"] is None]
+        context["results"] = [r for r in rows if r["my_score"] is not None]
+        outcomes = [r["outcome"] for r in context["results"]]
         context["record"] = {
-            "win": sum(1 for r in results if r["outcome"] == "win"),
-            "lose": sum(1 for r in results if r["outcome"] == "lose"),
-            "draw": sum(1 for r in results if r["outcome"] == "draw"),
+            "win": outcomes.count("win"),
+            "lose": outcomes.count("lose"),
+            "draw": outcomes.count("draw"),
         }
         return context
 
 
 class MatchResultEditView(TeacherRequiredMixin, View):
-    """試合結果の登録・編集（1つの試合に1つの結果。どちらの学校からでも編集できる）"""
+    """自校の得点・備考の登録と編集（相手校の得点は、相手校が登録する）"""
     template_name = "matching/result_form.html"
 
     def get_match(self):
@@ -403,141 +433,188 @@ class MatchResultEditView(TeacherRequiredMixin, View):
 
     def show_form(self, match, form):
         school = self.request.user.school
+        result = getattr(match, "result", None)
+        their_score, their_notes = (None, "")
+        if result:
+            _, their_score = result.scores_for(school)
+            _, their_notes = result.notes_for(school)
         return render(self.request, self.template_name, {
             "match": match,
             "form": form,
             "my_club": match.my_club(school),
             "other_club": match.other_club(school),
-            "is_edit": form.instance.pk is not None,
+            "their_score": their_score,
+            "their_notes": their_notes,
         })
+
+    def check_date(self, request, match):
+        if match.date > timezone.localdate():
+            messages.error(request, "試合結果は、試合日以降に登録できます。")
+            return redirect("planned_matches")
+        return None
 
     def get(self, request, pk):
         match = self.get_match()
-        if match.date > timezone.localdate():
-            messages.error(request, "試合結果は、試合日以降に登録できます。")
-            return redirect("planned_matches")
+        if (response := self.check_date(request, match)):
+            return response
+        initial = {}
         result = getattr(match, "result", None)
-        return self.show_form(match, MatchResultForm(instance=result, match=match))
+        if result:
+            score, _ = result.scores_for(request.user.school)
+            notes, _ = result.notes_for(request.user.school)
+            initial = {"my_score": score, "my_notes": notes}
+        return self.show_form(match, MatchResultForm(initial=initial))
 
     def post(self, request, pk):
         match = self.get_match()
-        if match.date > timezone.localdate():
-            messages.error(request, "試合結果は、試合日以降に登録できます。")
-            return redirect("planned_matches")
-        result = getattr(match, "result", None)
-        form = MatchResultForm(request.POST, instance=result, match=match)
+        if (response := self.check_date(request, match)):
+            return response
+        form = MatchResultForm(request.POST)
         if not form.is_valid():
             return self.show_form(match, form)
-        saved = form.save(commit=False)
-        saved.updated_by = request.user.school
-        saved.save()
-        messages.success(request, "試合結果を保存しました。")
+        result, _ = MatchResult.objects.get_or_create(match=match)
+        result.match = match
+        result.set_mine(request.user.school, form.cleaned_data["my_score"], form.cleaned_data["my_notes"])
+        result.save()
+        messages.success(request, "自校の試合結果を保存しました。")
         return redirect("match_results")
 
 
 class MatchResultDeleteView(TeacherRequiredMixin, View):
-    """試合結果を削除する（試合そのものは残る）"""
+    """自校の得点・備考を取り消す（相手校の入力は残る）"""
 
     def post(self, request, pk):
         school = request.user.school
         result = get_object_or_404(
-            MatchResult.objects.filter(
+            MatchResult.objects.select_related("match__applicant_club").filter(
                 Q(match__applicant_club__school=school) | Q(match__opponent_club__school=school)
             ),
             pk=pk,
         )
-        result.delete()
-        messages.success(request, "試合結果を削除しました。")
+        result.set_mine(school, None, "")
+        if result.applicant_score is None and result.opponent_score is None \
+                and not result.applicant_notes and not result.opponent_notes:
+            result.delete()
+        else:
+            result.save()
+        messages.success(request, "自校の試合結果を取り消しました。")
         return redirect("match_results")
 
 
 # ---------- メッセージ ----------
 
+def conversation_row(conversation, school):
+    """会話の一覧に表示するための、自校から見た会話の情報"""
+    return {
+        "conversation": conversation,
+        "school": conversation.other_school(school),
+        "my_club": conversation.my_club(school),
+        "other_club": conversation.other_club(school),
+        "kind": conversation.kind,
+        "kind_label": conversation.get_kind_display(),
+    }
+
+
 class MessageListView(TeacherRequiredMixin, TemplateView):
-    """会話（相手校ごと）の一覧と、新しく会話を始められる学校の一覧"""
+    """会話の一覧と、自由メッセージを始めるフォーム"""
     template_name = "matching/message_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         school = self.request.user.school
 
-        all_messages = (
-            Message.objects.filter(Q(sender=school) | Q(receiver=school))
-            .select_related("sender__area", "receiver__area")
-            .order_by("-created_at")
+        conversations = (
+            Conversation.for_school(school)
+            .filter(last_message_at__isnull=False)
+            .select_related("school_a", "school_b", "club_a__sport", "club_b__sport", "match")
         )
-        conversations = {}
-        for m in all_messages:
-            other = m.receiver if m.sender_id == school.pk else m.sender
-            conv = conversations.setdefault(other.pk, {
-                "school": other, "last_message": m, "unread": 0,
-                "last_is_mine": m.sender_id == school.pk,
-            })
-            if m.receiver_id == school.pk and not m.is_read:
-                conv["unread"] += 1
+        unread = {}
+        for conv_id in Message.unread_for(school).values_list("conversation_id", flat=True):
+            unread[conv_id] = unread.get(conv_id, 0) + 1
+        last_messages = {}
+        for m in Message.objects.filter(conversation__in=conversations).order_by("created_at"):
+            last_messages[m.conversation_id] = m
 
-        # 練習試合でやり取りのある学校を、新しい会話の候補の先頭に出す
-        partner_ids = {m.other_club(school).school_id for m in school_matches(school)}
-        others = (
-            School.objects.exclude(pk=school.pk)
-            .exclude(pk__in=list(conversations))
-            .select_related("area")
-        )
-        context["conversations"] = list(conversations.values())
-        context["available_schools"] = sorted(
-            others,
-            key=lambda s: (s.pk not in partner_ids, s.area.name if s.area else "", s.name),
-        )
-        context["partner_ids"] = partner_ids
+        rows = []
+        for conv in conversations:
+            row = conversation_row(conv, school)
+            row["last_message"] = last_messages.get(conv.pk)
+            row["last_is_mine"] = row["last_message"] and row["last_message"].sender_id == school.pk
+            row["unread"] = unread.get(conv.pk, 0)
+            rows.append(row)
+        context["conversations"] = rows
+        context["start_form"] = kwargs.get("start_form") or ConversationStartForm(school=school)
         return context
 
 
+class ConversationStartView(TeacherRequiredMixin, View):
+    """自校と相手校の部活動を選んで、自由メッセージの会話を開く（すでにあればそれを開く）"""
+
+    def post(self, request):
+        form = ConversationStartForm(request.POST, school=request.user.school)
+        if not form.is_valid():
+            view = MessageListView()
+            view.setup(request)
+            return render(request, MessageListView.template_name,
+                          view.get_context_data(start_form=form))
+        conversation = Conversation.free_between(
+            form.cleaned_data["my_club"], form.cleaned_data["opponent_club"])
+        return redirect("message_room", pk=conversation.pk)
+
+
 class MessageRoomView(TeacherRequiredMixin, View):
-    """ある学校との会話の画面。開くと、届いたメッセージは既読になる"""
+    """会話の画面。開くと、届いたメッセージは既読になる"""
     template_name = "matching/message_room.html"
 
-    def get_other(self):
-        return get_object_or_404(
-            School.objects.exclude(pk=self.request.user.school_id).select_related("area"),
-            pk=self.kwargs["school_pk"],
+    def get_conversation(self):
+        conversation = get_object_or_404(
+            Conversation.objects.select_related(
+                "school_a__area", "school_b__area", "club_a__sport", "club_b__sport",
+                "match__applicant_club__school", "match__opponent_club__school", "match__facility",
+            ),
+            pk=self.kwargs["pk"],
         )
+        if not conversation.includes(self.request.user.school):
+            raise Http404
+        return conversation
 
-    def show_room(self, other, form):
+    def show_room(self, conversation, form):
         school = self.request.user.school
-        # 2校のあいだの、これからの練習試合（申込中・確定）を会話の上に表示する
-        related = (
-            school_matches(school)
-            .filter(Q(applicant_club__school=other) | Q(opponent_club__school=other))
-            .filter(
-                status__in=[PracticeMatch.Status.PENDING, PracticeMatch.Status.CONFIRMED],
-                date__gte=timezone.localdate(),
-            )
-            .order_by("date")
-        )
-        return render(self.request, self.template_name, {
-            "other": other,
-            "thread": Message.between(school, other).select_related("sender"),
+        context = conversation_row(conversation, school)
+        context.update({
+            "thread": conversation.messages.select_related("sender"),
             "form": form,
-            "related_matches": related,
+            "match": conversation.match,
         })
+        if conversation.match:
+            context["match_candidates"] = list(conversation.match.candidates.all())
+        return render(self.request, self.template_name, context)
 
-    def get(self, request, school_pk):
-        other = self.get_other()
-        Message.objects.filter(
-            sender=other, receiver=request.user.school, is_read=False
-        ).update(is_read=True)
-        return self.show_room(other, MessageForm())
+    def get(self, request, pk):
+        conversation = self.get_conversation()
+        conversation.messages.filter(is_read=False).exclude(
+            sender=request.user.school).update(is_read=True)
+        return self.show_room(conversation, MessageForm())
 
-    def post(self, request, school_pk):
-        other = self.get_other()
+    def post(self, request, pk):
+        conversation = self.get_conversation()
         form = MessageForm(request.POST)
         if not form.is_valid():
-            return self.show_room(other, form)
+            return self.show_room(conversation, form)
         message = form.save(commit=False)
+        message.conversation = conversation
         message.sender = request.user.school
-        message.receiver = other
         message.save()
-        return redirect(reverse("message_room", args=[other.pk]) + "#latest")
+        return redirect(reverse("message_room", args=[conversation.pk]) + "#latest")
+
+
+class MatchConversationView(TeacherRequiredMixin, View):
+    """申し込みの会話を開く（古い申し込みで会話がまだなければ、ここで作る）"""
+
+    def get(self, request, pk):
+        match = get_object_or_404(
+            school_matches(request.user.school).select_related(None), pk=pk)
+        return redirect("message_room", pk=Conversation.for_match(match).pk)
 
 
 # ---------- 日程調整 ----------
@@ -583,23 +660,30 @@ class ScheduleView(TeacherRequiredMixin, TemplateView):
         mine = {a.date: a for a in Availability.objects.filter(club=club, date__gte=today)}
         theirs = {a.date: a for a in Availability.objects.filter(club=opponent, date__gte=today)}
 
-        # この2つの部活動のあいだで、すでに申込中・確定の試合がある日
-        pair_matches = PracticeMatch.objects.filter(
+        # この2つの部活動のあいだで、申し込み中の候補日・確定した日
+        pair = PracticeMatch.objects.filter(
             Q(applicant_club=club, opponent_club=opponent)
-            | Q(applicant_club=opponent, opponent_club=club),
-            status__in=[PracticeMatch.Status.PENDING, PracticeMatch.Status.CONFIRMED],
+            | Q(applicant_club=opponent, opponent_club=club)
         )
-        pair_status = {m.date: m.get_status_display() for m in pair_matches}
+        pair_status = {
+            d: "申込中" for d in CandidateDate.objects.filter(
+                match__in=pair.filter(status=PracticeMatch.Status.PENDING)
+            ).values_list("date", flat=True)
+        }
+        pair_status.update({
+            d: "確定" for d in pair.filter(status=PracticeMatch.Status.CONFIRMED)
+            .values_list("date", flat=True)
+        })
 
         # どちらかの部活動に、別の相手との試合が確定している日
         busy_dates = set(
             PracticeMatch.objects.filter(status=PracticeMatch.Status.CONFIRMED, date__gte=today)
             .filter(Q(applicant_club__in=[club, opponent]) | Q(opponent_club__in=[club, opponent]))
-            .exclude(pk__in=pair_matches.values("pk"))
+            .exclude(pk__in=pair.values("pk"))
             .values_list("date", flat=True)
         )
 
-        context["candidates"] = [
+        candidates = [
             {
                 "date": d,
                 "my_host": mine[d].can_host,
@@ -609,5 +693,13 @@ class ScheduleView(TeacherRequiredMixin, TemplateView):
             }
             for d in sorted(set(mine) & set(theirs))
         ]
+        context["candidates"] = candidates
         context["their_date_count"] = len(theirs)
+
+        # 申し込める日をまとめて候補日にして、申し込み画面へ進むリンク
+        open_dates = [c["date"].isoformat() for c in candidates if not c["requested"] and not c["busy"]]
+        if open_dates:
+            query = "&".join(f"date={d}" for d in open_dates[:MAX_CANDIDATES])
+            context["apply_all_url"] = (
+                reverse("match_request", args=[club.pk, opponent.pk]) + "?" + query)
         return context

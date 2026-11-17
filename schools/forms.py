@@ -1,7 +1,7 @@
 from django import forms
 
 from .geocoding import geocode
-from .models import Club, School
+from .models import Club, School, Sport
 
 ADDRESS_HELP = "都道府県から番地まで入力してください。入力した住所から、距離の計算に使う位置を自動で求めます。"
 
@@ -32,6 +32,23 @@ class SchoolLocationMixin:
     def save(self, commit=True):
         self.instance.latitude, self.instance.longitude = self._location
         return super().save(commit)
+
+
+class SportForm(forms.ModelForm):
+    """教育委員会が、競技を登録・編集するフォーム"""
+
+    class Meta:
+        model = Sport
+        fields = ["name", "icon"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "例：サッカー"}),
+            "icon": forms.TextInput(attrs={"placeholder": "例：⚽", "maxlength": 20}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # デザインに合わせて、アイコンも入力必須にする（既存の競技は未設定のままでも表示できる）
+        self.fields["icon"].required = True
 
 
 class SchoolUpdateForm(SchoolLocationMixin, forms.ModelForm):
@@ -69,6 +86,9 @@ class ClubForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.school = school
         self.instance.school = school
+        # 競技の選択肢に、アイコンも表示する（例：⚽ サッカー）
+        self.fields["sport"].queryset = Sport.objects.order_by("name")
+        self.fields["sport"].label_from_instance = lambda s: f"{s.display_icon} {s.name}"
 
     def clean(self):
         cleaned = super().clean()

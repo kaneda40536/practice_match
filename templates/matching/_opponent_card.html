@@ -2,11 +2,11 @@
 <article class="opponent-card">
     <div class="opponent-card-top">
         <span class="opponent-card-label">対戦候補</span>
-        <span class="opponent-card-sport">{{ row.club.get_gender_display }}{{ row.club.sport.name }}</span>
+        <span class="opponent-card-sport">{{ row.club.sport.display_icon }} {{ row.club.get_gender_display }}{{ row.club.sport.name }}</span>
     </div>
 
     <h3>{{ row.school.name }}</h3>
-    <h4>{{ row.club.get_gender_display }}{{ row.club.sport.name }}部</h4>
+    <h4>{{ row.club.name }}</h4>
 
     <div class="opponent-card-info">
         <div>

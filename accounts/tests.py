@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from facilities.models import Facility
-from matching.models import Availability, PracticeMatch
+from matching.models import Availability, CandidateDate, Conversation, Message, PracticeMatch
 from schools.models import Area, Club, School, Sport
 from .models import User
 
@@ -37,13 +37,21 @@ class TeacherPagesTest(TestCase):
         Availability.objects.create(club=cls.club, date=day, can_host=True)
         Availability.objects.create(club=cls.other_club, date=day, can_host=False)
 
-        # 届いた申し込み（申込中）と、申し込んだ試合（確定）
-        PracticeMatch.objects.create(
-            applicant_club=cls.other_club, opponent_club=cls.club, date=day,
+        # 届いた申し込み（申込中・候補日2つ）と、申し込んだ試合（確定）
+        received = PracticeMatch.objects.create(
+            applicant_club=cls.other_club, opponent_club=cls.club,
             venue_kind=PracticeMatch.VenueKind.FACILITY, facility=facility, message="よろしくお願いします")
-        PracticeMatch.objects.create(
+        CandidateDate.objects.create(match=received, date=day)
+        CandidateDate.objects.create(match=received, date=day + timedelta(days=2))
+        sent = PracticeMatch.objects.create(
             applicant_club=cls.club, opponent_club=cls.other_club, date=day + timedelta(days=1),
             venue_kind=PracticeMatch.VenueKind.APPLICANT, status=PracticeMatch.Status.CONFIRMED)
+        CandidateDate.objects.create(match=sent, date=day + timedelta(days=1))
+
+        # 申し込みの会話と、以前の会話（部活動の指定なし）
+        Message.objects.create(conversation=Conversation.for_match(received), sender=cls.other, content="よろしく")
+        cls.legacy = Conversation.objects.create(school_a=cls.school, school_b=cls.other)
+        Message.objects.create(conversation=cls.legacy, sender=cls.school, content="以前のメッセージ")
 
     def setUp(self):
         self.client.force_login(self.teacher)
@@ -66,7 +74,7 @@ class TeacherPagesTest(TestCase):
             reverse("planned_matches"),
             reverse("match_results"),
             reverse("message_list"),
-            reverse("message_room", args=[self.other.pk]),
+            reverse("message_room", args=[self.legacy.pk]),
         ]
         for url in urls:
             with self.subTest(url=url):

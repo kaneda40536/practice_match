@@ -35,8 +35,8 @@
     <section class="result-management-section">
         <div class="result-management-section-heading">
             <div>
-                <h3>結果が未登録の試合（{{ unrecorded|length }}件）</h3>
-                <p>終わった試合の結果を登録してください。</p>
+                <h3>自校の結果が未登録の試合（{{ unrecorded|length }}件）</h3>
+                <p>終わった試合の、自校の得点を登録してください。</p>
             </div>
         </div>
 
@@ -55,11 +55,11 @@
                     {% for row in unrecorded %}
                         <tr>
                             <td class="result-management-date">{{ row.match.date|date:"Y年n月j日（D）" }}</td>
-                            <td>{{ row.my_club.get_gender_display }}{{ row.my_club.sport.name }}部</td>
+                            <td>{{ row.my_club.name }}</td>
                             <td>
                                 <div class="result-management-team">
                                     <strong>{{ row.other_club.school.name }}</strong>
-                                    <span>{{ row.other_club.get_gender_display }}{{ row.other_club.sport.name }}部</span>
+                                    <span>{{ row.other_club.name }}</span>
                                 </div>
                             </td>
                             <td>{{ row.match.venue_name }}</td>
@@ -79,7 +79,7 @@
     <div class="result-management-section-heading">
         <div>
             <h3>登録済み試合結果一覧</h3>
-            <p>試合結果の確認や編集、削除ができます。相手校が登録した結果も表示されます。</p>
+            <p>得点は「自校 - 相手校」の順です。自校の得点は青で表示しています。編集・取り消しできるのは自校の入力だけです。</p>
         </div>
     </div>
 
@@ -92,7 +92,7 @@
                         <th>自校</th>
                         <th>相手校</th>
                         <th>試合結果</th>
-                        <th>備考</th>
+                        <th>自校の備考</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -100,22 +100,22 @@
                     {% for row in results %}
                         <tr>
                             <td class="result-management-date">{{ row.match.date|date:"Y年n月j日（D）" }}</td>
-                            <td>{{ row.my_club.get_gender_display }}{{ row.my_club.sport.name }}部</td>
+                            <td>{{ row.my_club.name }}</td>
                             <td>
                                 <div class="result-management-team">
                                     <strong>{{ row.other_club.school.name }}</strong>
-                                    <span>{{ row.other_club.get_gender_display }}{{ row.other_club.sport.name }}部</span>
+                                    <span>{{ row.other_club.name }}</span>
                                 </div>
                             </td>
                             <td>{% include "matching/_score.html" with row=row %}</td>
-                            <td class="result-management-notes">{{ row.result.notes|default:"-"|linebreaksbr }}</td>
+                            <td class="result-management-notes">{{ row.my_notes|default:"-"|linebreaksbr }}</td>
                             <td>
                                 <div class="result-management-actions">
                                     <a href="{% url 'match_result_edit' row.match.pk %}" class="result-management-edit">編集</a>
                                     <form method="post" action="{% url 'match_result_delete' row.result.pk %}"
-                                          onsubmit="return confirm('この試合結果を削除してもよろしいですか？');">
+                                          onsubmit="return confirm('自校の得点と備考を取り消してもよろしいですか？（相手校の入力は残ります）');">
                                         {% csrf_token %}
-                                        <button type="submit" class="result-management-delete">削除</button>
+                                        <button type="submit" class="result-management-delete">取り消し</button>
                                     </form>
                                 </div>
                             </td>

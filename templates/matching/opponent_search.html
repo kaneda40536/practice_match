@@ -30,7 +30,7 @@
                     <option value="">部活動を選択してください</option>
                     {% for c in my_clubs %}
                         <option value="{{ c.pk }}"{% if selected_club and c.pk == selected_club.pk %} selected{% endif %}>
-                            {{ c.get_gender_display }}{{ c.sport.name }}部
+                            {{ c.name }}
                         </option>
                     {% endfor %}
                 </select>
@@ -82,7 +82,7 @@
 
             <div class="opponent-search-condition">
                 <span class="condition-label">検索対象</span>
-                <strong>{{ selected_club.get_gender_display }}{{ selected_club.sport.name }}部</strong>
+                <strong>{{ selected_club.name }}</strong>
                 <span>と同じ競技・区分の部活動</span>
             </div>
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ other.name }}とのメッセージ｜練習試合調整支援システム{% endblock %}
+{% block title %}{{ school.name }}とのメッセージ｜練習試合調整支援システム{% endblock %}
 
 {% block heading %}メッセージ{% endblock %}
 
@@ -9,30 +9,37 @@
 <div class="messages-heading">
     <div>
         <p class="messages-eyebrow">MESSAGES</p>
-        <h2>{{ other.name }}</h2>
-        <p>{{ other.area.name|default:"地域未登録" }}{% if other.address %}・{{ other.address }}{% endif %}</p>
+        <h2>{{ school.name }}</h2>
+        <p>{{ school.area.name|default:"地域未登録" }}{% if school.address %}・{{ school.address }}{% endif %}</p>
     </div>
 </div>
 
-{% if related_matches %}
-    <section class="messages-section">
-        <div class="messages-section-heading">
-            <div>
-                <h3>この学校との、これからの練習試合</h3>
-            </div>
-        </div>
-        <div class="date-chips">
-            {% for m in related_matches %}
-                <span class="date-chip">
-                    {{ m.date|date:"n/j（D）" }} {{ m.venue_name }}
-                    <small>{{ m.get_status_display }}</small>
-                </span>
-            {% endfor %}
-        </div>
-    </section>
-{% endif %}
-
 <section class="messages-section">
+    <div class="message-room-header">
+        {% if my_club and other_club %}
+            <p>{{ my_club.name }} → {{ other_club.name }}</p>
+        {% endif %}
+        <small class="conversation-kind kind-{{ kind }}">
+            {% if kind == "proposal" %}練習試合の申し込みに関する会話{% else %}{{ kind_label }}{% endif %}
+        </small>
+    </div>
+
+    {% if match %}
+        <div class="detail-list message-room-match">
+            <p>
+                <strong>申し込みの状況：</strong>
+                <span class="status-badge status-{{ match.status }}">{{ match.get_status_display }}</span>
+                {% if match.status == "confirmed" %}
+                    試合日 {{ match.date|date:"Y年n月j日（D）" }}・{{ match.venue_name }}
+                {% else %}
+                    候補日
+                    {% for c in match_candidates %}{{ c.date|date:"n/j（D）" }}{% if not forloop.last %}、{% endif %}{% endfor %}
+                    ・{{ match.venue_name }}
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+
     <div class="chat-thread" id="chat-thread">
         {% for message in thread %}
             <div class="chat-message{% if message.sender_id == user.school_id %} is-mine{% endif %}"{% if forloop.last %} id="latest"{% endif %}>

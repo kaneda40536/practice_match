@@ -1,11 +1,17 @@
-{# 自校から見た得点と勝敗。row = matching.views.match_row の戻り値 #}
+{# 自校から見た得点（自校 - 相手）と勝敗。row = matching.views.match_row の戻り値 #}
 <span class="score-cell">
-    <span class="planned-score">{{ row.my_score }} - {{ row.their_score }}</span>
+    <span class="result-management-score">
+        <span class="my-school-score">{% if row.my_score is not None %}{{ row.my_score }}{% else %}-{% endif %}</span>
+        -
+        <span>{% if row.their_score is not None %}{{ row.their_score }}{% else %}-{% endif %}</span>
+    </span>
     {% if row.outcome == "win" %}
         <span class="outcome-badge win">勝</span>
     {% elif row.outcome == "lose" %}
         <span class="outcome-badge lose">負</span>
-    {% else %}
+    {% elif row.outcome == "draw" %}
         <span class="outcome-badge draw">分</span>
+    {% else %}
+        <span class="outcome-pending">相手校の入力待ち</span>
     {% endif %}
 </span>

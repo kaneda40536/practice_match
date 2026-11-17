@@ -34,7 +34,7 @@
                     <option value="">部活動を選択してください</option>
                     {% for c in my_clubs %}
                         <option value="{{ c.pk }}"{% if selected_club and selected_club.pk == c.pk %} selected{% endif %}>
-                            {{ c.get_gender_display }}{{ c.sport.name }}部
+                            {{ c.name }}
                         </option>
                     {% endfor %}
                 </select>
@@ -54,7 +54,7 @@
                 </div>
                 <button type="submit" class="schedule-primary-button green">共通候補日を確認</button>
             {% else %}
-                <button type="submit" class="schedule-primary-button">相手校を表示</button>
+                <button type="submit" class="schedule-primary-button">表示</button>
             {% endif %}
         </form>
 
@@ -62,7 +62,7 @@
             <div class="schedule-divider"></div>
             <div class="schedule-notice">
                 <p>
-                    {{ selected_club.get_gender_display }}{{ selected_club.sport.name }}部の、今日以降の希望日：<strong>{{ my_date_count }}日</strong>
+                    {{ selected_club.name }}の、今日以降の希望日：<strong>{{ my_date_count }}日</strong>
                 </p>
                 <a href="{% url 'club_availability' selected_club.pk %}" class="schedule-primary-button">自校の希望日を登録・編集する</a>
             </div>
@@ -81,23 +81,29 @@
             <div class="schedule-heading-icon green">02</div>
             <div>
                 <h3>共通候補日の確認</h3>
-                <p>両校の希望日が重なる日です。申し込む日程を選んでください。</p>
+                <p>両校の希望日が重なる日です。1日だけ選ぶか、まとめて候補日にして申し込めます。</p>
             </div>
         </div>
 
         <div class="schedule-summary">
             <div class="schedule-summary-item">
                 <span>自校</span>
-                <strong>{{ selected_club.get_gender_display }}{{ selected_club.sport.name }}部</strong>
+                <strong>{{ selected_club.name }}</strong>
             </div>
             <div class="schedule-summary-arrow">VS</div>
             <div class="schedule-summary-item">
                 <span>相手校</span>
-                <strong>{{ selected_opponent.school.name }}　{{ selected_opponent.get_gender_display }}{{ selected_opponent.sport.name }}部</strong>
+                <strong>{{ selected_opponent.school.name }}　{{ selected_opponent.name }}</strong>
             </div>
         </div>
 
         {% if candidates %}
+            {% if apply_all_url %}
+                <div class="schedule-notice schedule-apply-all">
+                    <p>申し込める日をまとめて候補日にして、申し込み画面へ進めます。相手校がその中から1日を選びます。</p>
+                    <a href="{{ apply_all_url }}" class="schedule-primary-button green">まとめて候補日にして申し込む</a>
+                </div>
+            {% endif %}
             <div class="schedule-table-wrapper">
                 <table class="schedule-table">
                     <thead>

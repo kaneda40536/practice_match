@@ -2,10 +2,21 @@ from django.db import models
 
 
 class Sport(models.Model):
+    DEFAULT_ICON = "🏅"
+
     name = models.CharField("競技種目", max_length=50, unique=True)
+    icon = models.CharField(
+        "競技アイコン", max_length=20, blank=True,
+        help_text="競技に合った絵文字を入力してください。（例：⚽）",
+    )
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_icon(self):
+        """アイコンが未設定なら、共通のメダルを表示する"""
+        return self.icon or self.DEFAULT_ICON
 
 
 class Area(models.Model):
@@ -42,4 +53,9 @@ class Club(models.Model):
         unique_together = ("school", "sport", "gender")
 
     def __str__(self):
-        return f"{self.school.name} {self.get_gender_display()}{self.sport.name}部"
+        return f"{self.school.name} {self.name}"
+
+    @property
+    def name(self):
+        """部活動名（例：男子サッカー部）"""
+        return f"{self.get_gender_display()}{self.sport.name}部"

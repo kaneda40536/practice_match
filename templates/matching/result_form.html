@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}試合結果の{% if is_edit %}編集{% else %}登録{% endif %}｜練習試合調整支援システム{% endblock %}
+{% block title %}試合結果の登録｜練習試合調整支援システム{% endblock %}
 
 {% block heading %}試合結果管理{% endblock %}
 
@@ -8,8 +8,8 @@
 
 <section class="school-intro">
     <span class="english-label">MATCH RESULT</span>
-    <h2>試合結果の{% if is_edit %}編集{% else %}登録{% endif %}</h2>
-    <p>登録した結果は、相手校の画面にも表示されます。</p>
+    <h2>試合結果登録</h2>
+    <p>自校の得点と、自校側の試合内容・備考を入力してください。相手校の得点は、相手校が入力します。</p>
 </section>
 
 <!-- 試合情報 -->
@@ -24,14 +24,24 @@
 
     <div class="schedule-summary">
         <div class="schedule-summary-item">
-            <span>申込側</span>
-            <strong>{{ match.applicant_club.school.name }}　{{ match.applicant_club.get_gender_display }}{{ match.applicant_club.sport.name }}部</strong>
+            <span>自校</span>
+            <strong>{{ my_club.name }}</strong>
         </div>
         <div class="schedule-summary-arrow">VS</div>
         <div class="schedule-summary-item">
-            <span>相手側</span>
-            <strong>{{ match.opponent_club.school.name }}　{{ match.opponent_club.get_gender_display }}{{ match.opponent_club.sport.name }}部</strong>
+            <span>相手校</span>
+            <strong>{{ other_club.school.name }}　{{ other_club.name }}</strong>
         </div>
+    </div>
+
+    <div class="detail-list their-result">
+        <p>
+            <strong>相手校の得点：</strong>
+            {% if their_score is not None %}{{ their_score }}{% else %}<span class="muted">まだ入力されていません</span>{% endif %}
+        </p>
+        {% if their_notes %}
+            <p><strong>相手校の試合内容・備考：</strong>{{ their_notes|linebreaksbr }}</p>
+        {% endif %}
     </div>
 </section>
 
@@ -39,54 +49,38 @@
 <section class="school-form-card">
     <div class="school-section-heading">
         <h3>試合結果の入力</h3>
-        <p>両校の得点を入力してください。</p>
+        <p>両校の得点がそろうと、勝敗が表示されます。</p>
     </div>
-
-    {% for error in form.non_field_errors %}
-        <p class="flash flash--error">{{ error }}</p>
-    {% endfor %}
 
     <form method="post">
         {% csrf_token %}
 
         <div class="school-form-grid">
             <div class="school-form-group">
-                <label for="{{ form.applicant_score.id_for_label }}">{{ form.applicant_score.label }}</label>
-                {{ form.applicant_score }}
-                {% for error in form.applicant_score.errors %}
-                    <p class="field-error">{{ error }}</p>
-                {% endfor %}
-            </div>
-
-            <div class="school-form-group">
-                <label for="{{ form.opponent_score.id_for_label }}">{{ form.opponent_score.label }}</label>
-                {{ form.opponent_score }}
-                {% for error in form.opponent_score.errors %}
+                <label for="{{ form.my_score.id_for_label }}">{{ form.my_score.label }}</label>
+                {{ form.my_score }}
+                {% for error in form.my_score.errors %}
                     <p class="field-error">{{ error }}</p>
                 {% endfor %}
             </div>
 
             <div class="school-form-group is-wide">
-                <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-                {{ form.notes }}
-                {% for error in form.notes.errors %}
+                <label for="{{ form.my_notes.id_for_label }}">{{ form.my_notes.label }}</label>
+                {{ form.my_notes }}
+                {% for error in form.my_notes.errors %}
                     <p class="field-error">{{ error }}</p>
                 {% endfor %}
             </div>
         </div>
 
-        {% if is_edit and match.result.updated_by %}
-            <p class="help-text">最後に登録した学校：{{ match.result.updated_by.name }}（{{ match.result.updated_at|date:"Y/n/j H:i" }}）</p>
-        {% endif %}
-
         <div class="school-form-actions">
-            <button type="submit" class="school-save-button">結果を保存する</button>
+            <button type="submit" class="school-save-button">結果を登録する</button>
         </div>
     </form>
 </section>
 
 <div class="school-back-area">
-    <a href="{% url 'match_results' %}" class="school-back-link">← 試合結果管理に戻る</a>
+    <a href="{% url 'planned_matches' %}" class="school-back-link">← 予定試合一覧に戻る</a>
 </div>
 
 {% endblock %}

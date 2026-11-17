@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, TemplateView
 from accounts.views import BoardRequiredMixin, TeacherRequiredMixin
-from .forms import ClubForm, SchoolAddressForm, SchoolUpdateForm
+from .forms import ClubForm, SchoolAddressForm, SchoolUpdateForm, SportForm
 from .models import Area, Club, School, Sport
 
 User = get_user_model()
@@ -24,7 +24,7 @@ class SportListView(BoardRequiredMixin, ListView):
 
 class SportCreateView(BoardRequiredMixin, CreateView):
     model = Sport
-    fields = ["name"]
+    form_class = SportForm
     template_name = "sports/sport_form.html"
     success_url = reverse_lazy("sport_list")
 
@@ -35,7 +35,7 @@ class SportCreateView(BoardRequiredMixin, CreateView):
 
 class SportUpdateView(BoardRequiredMixin, UpdateView):
     model = Sport
-    fields = ["name"]
+    form_class = SportForm
     template_name = "sports/sport_form.html"
     success_url = reverse_lazy("sport_list")
 
