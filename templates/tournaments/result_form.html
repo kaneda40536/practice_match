@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}大会成績の変更｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}大会成績管理{% endblock %}
+
+{% block content %}
+
+<div class="result-management-heading">
+    <div>
+        <p class="result-management-eyebrow">TOURNAMENT RESULTS</p>
+        <h2>大会成績の変更</h2>
+        <p>登録済みの大会成績を変更できます。</p>
+    </div>
+</div>
+
+<section class="result-management-section">
+    {% include "tournaments/_result_fields.html" with form=form button_label="変更を保存する" %}
+</section>
+
+<div class="result-management-back">
+    <a href="{% url 'tournament_results' %}">← 大会成績管理に戻る</a>
+</div>
+
+{% endblock %}

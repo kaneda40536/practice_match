@@ -8,6 +8,7 @@ urlpatterns = [
 
     # 対戦相手検索
     path("search/", views.OpponentSearchView.as_view(), name="opponent_search"),
+    path("search/<int:club_pk>/<int:opponent_pk>/", views.OpponentDetailView.as_view(), name="opponent_detail"),
 
     # 練習試合の申し込み
     path("apply/<int:club_pk>/<int:opponent_pk>/", views.MatchRequestView.as_view(), name="match_request"),
@@ -30,4 +31,7 @@ urlpatterns = [
     path("messages/", views.MessageListView.as_view(), name="message_list"),
     path("messages/start/", views.ConversationStartView.as_view(), name="message_start"),
     path("messages/<int:pk>/", views.MessageRoomView.as_view(), name="message_room"),
+
+    # 画面の自動更新（件数と、データの変化の目印）
+    path("live/", views.live_updates, name="live_updates"),
 ]

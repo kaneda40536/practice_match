@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}{{ opponent.school.name }}の詳細｜練習試合調整支援システム{% endblock %}
+
+{% block live_watch %}matches dates{% endblock %}
+
+{% block heading %}対戦相手検索{% endblock %}
+
+{% block content %}
+
+<section class="school-intro">
+    <span class="english-label">OPPONENT DETAILS</span>
+    <h2>対戦相手の詳細</h2>
+    <p>相手校の学校情報や部活動情報を確認し、練習試合を申し込めます。</p>
+</section>
+
+<!-- 学校・部活動情報 -->
+<section class="admin-section-card">
+    <div class="dashboard-menu-heading">
+        <h2>
+            {{ opponent.school.name }}
+            {% if row.fit == "match" %}<span class="opponent-recommend">おすすめ</span>{% endif %}
+        </h2>
+        <p>{{ opponent.sport.display_icon }} {{ opponent.name }}</p>
+    </div>
+    <div class="detail-list">
+        <p><strong>所属地域：</strong>{{ opponent.school.area.name|default:"未登録" }}</p>
+        <p><strong>所在地：</strong>{{ opponent.school.address|default:"未登録" }}</p>
+        <p><strong>自校からの距離：</strong>{% if row.distance is not None %}約 {{ row.distance }} km（直線）{% else %}不明{% endif %}</p>
+        <p><strong>学校内の会場：</strong>
+            {% for facility in school_facilities %}{{ facility.name }}{% if not forloop.last %}、{% endif %}{% empty %}未登録{% endfor %}
+        </p>
+    </div>
+</section>
+
+<!-- 競技レベル -->
+<section class="admin-section-card">
+    <div class="dashboard-menu-heading">
+        <h2>競技レベル</h2>
+        <p>{{ club.name }}（自校）から見た推定です。希望する対戦レベルは「{{ club.get_desired_level_display }}」です。</p>
+    </div>
+    <p>
+        <span class="opponent-level {{ row.level.relation }}">{{ row.level.label }}</span>
+        {% if row.fit == "match" %}希望する対戦レベルに合っています。{% elif row.fit == "unknown" %}判定の材料がまだありません。{% else %}希望する対戦レベルとは異なります。{% endif %}
+    </p>
+    <ul class="opponent-reasons">
+        {% for reason in row.level.reasons %}<li>{{ reason }}</li>{% endfor %}
+    </ul>
+</section>
+
+<!-- 大会成績 -->
+<section class="admin-section-card">
+    <div class="dashboard-menu-heading">
+        <h2>大会成績</h2>
+        <p>相手校が登録した大会成績です（新しい順）。</p>
+    </div>
+    {% if tournament_results %}
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead><tr><th>開催年度</th><th>大会名</th><th>大会規模</th><th>大会成績</th></tr></thead>
+                <tbody>
+                    {% for result in tournament_results %}
+                        <tr>
+                            <td>{{ result.fiscal_year }}年度</td>
+                            <td>{{ result.tournament_name }}</td>
+                            <td><span class="tournament-level level-{{ result.level }}">{{ result.get_level_display }}</span></td>
+                            <td><strong>{{ result.get_achievement_display }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">大会成績は登録されていません。</p>
+    {% endif %}
+</section>
+
+<!-- 過去の対戦 -->
+<section class="admin-section-card">
+    <div class="dashboard-menu-heading">
+        <h2>過去の対戦</h2>
+        <p>この部活動どうしで行った練習試合です。</p>
+    </div>
+    {% if past_matches %}
+        <div class="data-table-wrap">
+            <table class="data-table">
+                <thead><tr><th>試合日</th><th>会場</th><th>結果</th></tr></thead>
+                <tbody>
+                    {% for r in past_matches %}
+                        <tr>
+                            <td>{{ r.match.date|date:"Y年n月j日（D）" }}</td>
+                            <td>{{ r.match.venue_name }}</td>
+                            <td>{% include "matching/_score.html" with row=r %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">まだ対戦したことはありません。</p>
+    {% endif %}
+</section>
+
+<!-- 日程 -->
+<section class="admin-section-card">
+    <div class="dashboard-menu-heading">
+        <h2>相手校の希望日</h2>
+        <p>★ は自校の希望日と重なっている日です。</p>
+    </div>
+    {% if their_dates %}
+        <div class="date-chips">
+            {% for a in their_dates %}
+                <span class="date-chip{% for c in row.common %}{% if c.date == a.date %} is-common{% endif %}{% endfor %}">
+                    {% for c in row.common %}{% if c.date == a.date %}★ {% endif %}{% endfor %}{{ a.date|date:"n/j（D）" }}{% if a.can_host %}<small>受け入れ可</small>{% endif %}
+                </span>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">相手校から希望日はまだ登録されていません。</p>
+    {% endif %}
+</section>
+
+<!-- 申し込み・メッセージ -->
+<section class="admin-section-card">
+    <div class="dashboard-menu-heading">
+        <h2>練習試合の申し込み・連絡</h2>
+        <p>候補日を選んで申し込むと、相手校が候補日の中から1日を選んで確定します。</p>
+    </div>
+    <div class="form-actions proposal-actions">
+        <a href="{% url 'match_request' club.pk opponent.pk %}{% for c in row.common|slice:':5' %}{% if forloop.first %}?{% else %}&{% endif %}date={{ c.date|date:'Y-m-d' }}{% endfor %}"
+           class="received-approve">候補日を選んで申し込む →</a>
+        <form method="post" action="{% url 'message_start' %}">
+            {% csrf_token %}
+            <input type="hidden" name="my_club" value="{{ club.pk }}">
+            <input type="hidden" name="opponent_club" value="{{ opponent.pk }}">
+            <button type="submit" class="action-button secondary">✉ メッセージを送る</button>
+        </form>
+    </div>
+</section>
+
+<div class="opponent-back-area">
+    <a href="{% url 'opponent_search' %}?club={{ club.pk }}" class="opponent-back-button">← 対戦相手の検索に戻る</a>
+</div>
+
+{% endblock %}

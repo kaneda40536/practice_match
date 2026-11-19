@@ -59,7 +59,7 @@
         {% endfor %}
     </div>
 
-    <form method="post" class="chat-form">
+    <form method="post" novalidate class="chat-form">
         {% csrf_token %}
         <label for="{{ form.content.id_for_label }}" class="visually-hidden">{{ form.content.label }}</label>
         {{ form.content }}

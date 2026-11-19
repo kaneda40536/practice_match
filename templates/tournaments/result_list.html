@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}大会成績管理｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}大会成績管理{% endblock %}
+
+{% block content %}
+
+<div class="result-management-heading">
+    <div>
+        <p class="result-management-eyebrow">TOURNAMENT RESULTS</p>
+        <h2>大会成績管理</h2>
+        <p>
+            自校の部活動の過去の大会成績を登録・確認できます。登録は任意です。<br>
+            登録した成績は、対戦相手検索で「競技レベル」を判定するために使われます（直近3年度分）。
+        </p>
+    </div>
+</div>
+
+<!-- 大会成績登録 -->
+<section class="result-management-section">
+    <div class="result-management-section-heading">
+        <div>
+            <h3>大会成績を登録</h3>
+            <p>大会の規模や成績を入力してください。</p>
+        </div>
+    </div>
+
+    {% if has_clubs %}
+        {% include "tournaments/_result_fields.html" with form=form button_label="大会成績を登録" %}
+    {% else %}
+        <div class="result-management-empty">
+            <div class="result-management-empty-icon">▤</div>
+            <h4>部活動が登録されていません</h4>
+            <p>大会成績を登録するには、先に<a href="{% url 'my_club_list' %}">部活動を登録</a>してください。</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- 登録済み大会成績一覧 -->
+<section class="result-management-section">
+    <div class="result-management-section-heading">
+        <div>
+            <h3>登録済み大会成績一覧</h3>
+            <p>これまでに登録した大会成績を確認できます。</p>
+        </div>
+    </div>
+
+    {% if results %}
+        <div class="result-management-table-wrap">
+            <table class="result-management-table">
+                <thead>
+                    <tr>
+                        <th>開催年度</th>
+                        <th>部活動</th>
+                        <th>大会名</th>
+                        <th>大会規模</th>
+                        <th>大会成績</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                        <tr>
+                            <td>{{ result.fiscal_year }}年度</td>
+                            <td>{{ result.club.sport.display_icon }} {{ result.club.name }}</td>
+                            <td>{{ result.tournament_name }}</td>
+                            <td><span class="tournament-level level-{{ result.level }}">{{ result.get_level_display }}</span></td>
+                            <td><strong>{{ result.get_achievement_display }}</strong></td>
+                            <td>
+                                <div class="table-actions">
+                                    <a href="{% url 'tournament_result_edit' result.pk %}" class="action-button secondary">変更</a>
+                                    <form method="post" action="{% url 'tournament_result_delete' result.pk %}"
+                                          onsubmit="return confirm('この大会成績を削除しますか？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-button danger">削除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="result-management-empty">
+            <div class="result-management-empty-icon">🏆</div>
+            <h4>大会成績はありません</h4>
+            <p>登録済みの大会成績はありません。</p>
+        </div>
+    {% endif %}
+</section>
+
+<div class="result-management-back">
+    <a href="{% url 'teacher_home' %}">← 学校ホームに戻る</a>
+</div>
+
+{% endblock %}

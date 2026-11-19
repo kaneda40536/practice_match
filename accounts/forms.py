@@ -1,14 +1,15 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 
+from config.form_messages import RequiredMessageMixin
 from schools.forms import ADDRESS_HELP, SchoolLocationMixin
 from schools.models import School
 from .models import User
 
 
-class CustomLoginForm(AuthenticationForm):
+class CustomLoginForm(RequiredMessageMixin, AuthenticationForm):
     username = forms.CharField(label="学校ID")
 
     error_messages = {
@@ -17,7 +18,7 @@ class CustomLoginForm(AuthenticationForm):
     }
 
 
-class SchoolAccountCreateForm(SchoolLocationMixin, forms.ModelForm):
+class SchoolAccountCreateForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelForm):
     """学校（School）と、その学校のログインアカウント（User）を同時に作るフォーム"""
 
     username = forms.CharField(
@@ -69,3 +70,6 @@ class SchoolAccountCreateForm(SchoolLocationMixin, forms.ModelForm):
             school=school,
         )
         return user
+
+class SchoolPasswordForm(RequiredMessageMixin, SetPasswordForm):
+    """教育委員会が、学校アカウントのパスワードを再設定するフォーム"""

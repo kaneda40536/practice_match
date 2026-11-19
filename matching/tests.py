@@ -116,10 +116,23 @@ class ProposalTest(MatchingFeatureTestBase):
         response = self.client.get(reverse("received_matches"))
         self.assertEqual(response.context["pending"], [match])
 
+        # 会場を選ばないと確定できない
         self.client.post(reverse("match_respond", args=[match.pk]),
                          {"action": "approve", "candidate_date_id": c2.pk})
         match.refresh_from_db()
-        self.assertEqual((match.status, match.date), ("confirmed", self.day2))
+        self.assertEqual(match.status, "pending")
+
+        # day2 は A高校が「受け入れ可」でないので、A高校では実施できない
+        self.client.post(reverse("match_respond", args=[match.pk]),
+                         {"action": "approve", "candidate_date_id": c2.pk, "venue": "applicant"})
+        match.refresh_from_db()
+        self.assertEqual(match.status, "pending")
+
+        # day1 なら A高校で実施できる（申し込んだ側が選んだ会場から変えてもよい）
+        self.client.post(reverse("match_respond", args=[match.pk]),
+                         {"action": "approve", "candidate_date_id": c1.pk, "venue": "applicant"})
+        match.refresh_from_db()
+        self.assertEqual((match.status, match.date, match.venue_kind), ("confirmed", self.day1, "applicant"))
 
     def test_confirm_requires_a_candidate(self):
         match, c1, c2 = self.make_proposal()
@@ -210,7 +223,15 @@ class ResultTest(MatchingFeatureTestBase):
         response = self.client.post(reverse("match_result_edit", args=[self.past_match.pk]),
                                     {"my_score": -1})
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "得点は0以上の数字で入力してください。")
         self.assertFalse(MatchResult.objects.exists())
+
+    def test_empty_score_shows_message(self):
+        self.client.force_login(self.user_a)
+        response = self.client.post(reverse("match_result_edit", args=[self.past_match.pk]),
+                                    {"my_score": ""})
+        self.assertContains(response, "自校の得点を入力してください。")
+        self.assertContains(response, "novalidate")
 
     def test_cancel_only_clears_own_side(self):
         result = MatchResult.objects.create(match=self.past_match, applicant_score=3, opponent_score=1)
@@ -281,6 +302,12 @@ class ConversationTest(MatchingFeatureTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Message.objects.exists())
 
+    def test_start_without_clubs_shows_messages(self):
+        self.client.force_login(self.user_a)
+        response = self.client.post(reverse("message_start"), {})
+        self.assertContains(response, "自校の部活動を選択してください。")
+        self.assertContains(response, "相手校の部活動を選択してください。")
+
     def test_match_conversation_link_creates_conversation_for_old_match(self):
         self.client.force_login(self.user_b)
         response = self.client.get(reverse("match_conversation", args=[self.past_match.pk]))
@@ -329,3 +356,51 @@ class SportIconTest(TestCase):
 
     def test_default_icon_for_old_sports(self):
         self.assertEqual(Sport(name="野球").display_icon, "🏅")
+
+
+class LiveUpdateTest(MatchingFeatureTestBase):
+    """画面の自動更新：件数と、データの変化の目印"""
+
+    def get_live(self):
+        response = self.client.get(reverse("live_updates"))
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_page_has_live_settings(self):
+        self.client.force_login(self.user_b)
+        response = self.client.get(reverse("received_matches"))
+        self.assertContains(response, f'data-live-url="{reverse("live_updates")}"')
+        self.assertContains(response, 'data-live-watch="matches"')
+        self.assertContains(response, 'data-badge-key="pending_received"')
+        self.assertContains(response, "js/live-update.js")
+
+    def test_versions_change_when_data_changes(self):
+        self.client.force_login(self.user_b)
+        before = self.get_live()
+
+        # A高校が申し込むと、B高校の「matches」の目印と件数が変わる
+        self.client.force_login(self.user_a)
+        day = (timezone.localdate() + timedelta(days=30)).isoformat()
+        Availability.objects.create(club=self.club_a, date=day, can_host=True)
+        self.client.post(reverse("match_request", args=[self.club_a.pk, self.club_b.pk]),
+                         {"candidate_dates": [day], "venue": "applicant", "message": "よろしく"})
+
+        self.client.force_login(self.user_b)
+        after = self.get_live()
+        self.assertNotEqual(before["versions"]["matches"], after["versions"]["matches"])
+        self.assertNotEqual(before["versions"]["messages"], after["versions"]["messages"])
+        self.assertNotEqual(before["versions"]["dates"], after["versions"]["dates"])
+        self.assertEqual(after["badges"]["pending_received"], before["badges"]["pending_received"] + 1)
+        self.assertEqual(after["badges"]["unread_messages"], before["badges"]["unread_messages"] + 1)
+
+        # 何も変わらなければ、目印も同じ
+        self.assertEqual(after["versions"], self.get_live()["versions"])
+
+    def test_board_and_anonymous_get_403(self):
+        self.assertEqual(self.client.get(reverse("live_updates")).status_code, 403)
+        from accounts.models import User
+        board = User.objects.create_user(username="board_x", password="pass12345!", role=User.Role.BOARD)
+        self.client.force_login(board)
+        self.assertEqual(self.client.get(reverse("live_updates")).status_code, 403)
+        response = self.client.get(reverse("board_home"))
+        self.assertNotContains(response, "live-update.js")

@@ -27,7 +27,7 @@
         <div class="club-error">{{ error }}</div>
     {% endfor %}
 
-    <form method="post" class="club-register-form">
+    <form method="post" novalidate class="club-register-form">
         {% csrf_token %}
 
         <div class="club-register-fields">

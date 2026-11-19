@@ -109,6 +109,13 @@
     color: #991b1b;
 }
 
+.flash--warning {
+    border-color: #fde68a;
+    border-left-color: #d97706;
+    background: #fffbeb;
+    color: #92400e;
+}
+
 
 /* ---------- ホーム画面 ---------- */
 
@@ -1081,4 +1088,199 @@ a.schedule-apply-button {
     border-color: #c9e8d5;
     background: #f0faf4;
     color: #1f6b43;
+}
+
+
+/* ========================================
+   画面の自動更新（static/js/live-update.js）
+======================================== */
+
+.live-notice {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 48px);
+    padding: 12px 16px;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #3478d4;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1e3a5f;
+    font-size: 14px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.15);
+    box-sizing: border-box;
+}
+
+.live-notice[hidden] {
+    display: none;
+}
+
+.live-notice.is-sticky {
+    border-left-color: #d97706;
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.live-notice button {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    background: #3478d4;
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .live-notice {
+        right: 16px;
+        bottom: 16px;
+        max-width: calc(100vw - 32px);
+    }
+}
+
+
+/* ========================================
+   2026-11-18 デザイン更新への対応
+   （会場管理・大会成績管理・対戦相手検索のおすすめ・会場の選択）
+======================================== */
+
+/* ---------- 対戦相手検索：競技レベルとおすすめ ---------- */
+
+.opponent-level.higher {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.opponent-level.same {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.opponent-level.lower {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.opponent-recommend {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 11px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.opponent-table tr.fit-match {
+    background: #fffdf5;
+}
+
+.opponent-sub {
+    display: block;
+    margin-top: 4px;
+    color: #7a8ca0;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+/* 判定理由は長くなるので、表の中では折り返す */
+.opponent-table td .opponent-reason {
+    max-width: 260px;
+    white-space: normal;
+}
+
+.opponent-level-help {
+    margin-top: 14px;
+}
+
+.opponent-reasons {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    color: #31506f;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.date-chip.is-common {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+/* ---------- 大会成績 ---------- */
+
+.tournament-level {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: #edf0f4;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tournament-level.level-prefecture {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.tournament-level.level-national {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.tournament-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 20px;
+}
+
+.tournament-form-grid .is-wide {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+    .tournament-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- 会場管理：対応競技のチェックボックス ---------- */
+
+.facility-sport-options {
+    flex-wrap: wrap;
+    gap: 10px 18px;
+}
+
+.facility-sport-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* ---------- 部活動管理：希望する対戦レベル ---------- */
+
+.club-level-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.club-level-form select {
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font-size: 13px;
 }

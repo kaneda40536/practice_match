@@ -1,0 +1,35 @@
+{% comment %}
+    学校内の施設（会場）の入力欄（会場管理の登録・編集で共通）
+    form : SchoolFacilityForm / button_label : ボタンの文字
+{% endcomment %}
+<form method="post" novalidate class="club-register-form">
+    {% csrf_token %}
+
+    <div class="club-register-fields">
+        <div class="club-field">
+            <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+            {{ form.name }}
+            {% for error in form.name.errors %}
+                <p class="field-error">{{ error }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="club-field">
+        <label>{{ form.sports.label }}</label>
+        <div class="club-register-fields facility-sport-options">
+            {% for checkbox in form.sports %}
+                <label class="facility-sport-option">
+                    {{ checkbox.tag }} {{ checkbox.choice_label }}
+                </label>
+            {% endfor %}
+        </div>
+        {% for error in form.sports.errors %}
+            <p class="field-error">{{ error }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="club-register-actions">
+        <button type="submit" class="club-register-button">{{ button_label }}</button>
+    </div>
+</form>

@@ -12,7 +12,7 @@
 </div>
 
 <div class="account-form-card">
-    <form method="post">
+    <form method="post" novalidate>
         {% csrf_token %}
 
         {% include "_form_fields.html" with form=form %}

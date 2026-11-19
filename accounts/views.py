@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.contrib.auth.forms import SetPasswordForm
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.db.models import Q
@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.urls import reverse_lazy
 from django.views.generic import FormView, ListView, TemplateView, View
 
-from .forms import CustomLoginForm, SchoolAccountCreateForm
+from .forms import CustomLoginForm, SchoolAccountCreateForm, SchoolPasswordForm
 from .models import User
 from schools.models import Club, School
 from facilities.models import Facility
@@ -33,7 +33,13 @@ class CustomLoginView(LoginView):
         return reverse_lazy('teacher_home')
 
     def form_invalid(self, form):
-        if form.non_field_errors():
+        # 未入力の項目があれば、どれが未入力かを伝える（ブラウザのチェックは使わない）
+        labels = {"username": "学校ID", "password": "パスワード"}
+        missing = [label for name, label in labels.items()
+                   if not form.data.get(name, "").strip()]
+        if missing:
+            error_msg = "と".join(missing) + "を入力してください。"
+        elif form.non_field_errors():
             error_msg = form.non_field_errors()[0]
         else:
             error_msg = "学校IDとパスワードを入力してください。"
@@ -49,12 +55,46 @@ def custom_logout_view(request):
 
 # ---------- 共通の部品（ミックスイン） ----------
 
-class BoardRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+def home_url_for(user):
+    """そのユーザーのホーム画面。顧問なのに学校が設定されていなければ None"""
+    if is_board(user):
+        return reverse_lazy("board_home")
+    if user.role == User.Role.TEACHER and user.school_id is not None:
+        return reverse_lazy("teacher_home")
+    return None
+
+
+class RoleRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """見られない画面を開いたときに、403 の画面ではなく自分のホームに案内する
+
+    同じブラウザの別のタブで別のアカウントにログインすると、ログイン状態が
+    入れ替わる（ブラウザに保存できるログインは1つだけ）。そのため、前のタブで
+    操作すると「この画面は見られない」状態になりやすいので、分かるように知らせる。
+    """
+
+    def handle_no_permission(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return super().handle_no_permission()   # ログイン画面へ
+        home = home_url_for(user)
+        if home is None:
+            logout(self.request)
+            messages.error(self.request, "このアカウントには学校が設定されていません。教育委員会にお問い合わせください。")
+            return redirect("login")
+        messages.warning(
+            self.request,
+            f"この画面は、いまログインしている「{user.username}」では開けないため、ホームに移動しました。"
+            "同じブラウザの別のタブで、別のアカウントにログインしていませんか？",
+        )
+        return redirect(home)
+
+
+class BoardRequiredMixin(RoleRequiredMixin):
     """教育委員会の管理者だけが見られる画面に付ける"""
     def test_func(self):
         return is_board(self.request.user)
 
-class TeacherRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+class TeacherRequiredMixin(RoleRequiredMixin):
     """学校が設定されている顧問だけが見られる画面に付ける"""
     def test_func(self):
         user = self.request.user
@@ -143,7 +183,7 @@ class SchoolAccountCreateView(BoardRequiredMixin, FormView):
 
 
 class SchoolAccountPasswordView(BoardRequiredMixin, FormView):
-    form_class = SetPasswordForm
+    form_class = SchoolPasswordForm
     template_name = "school_accounts/password_form.html"
     success_url = reverse_lazy("school_account_list")
 
@@ -174,3 +214,21 @@ class SchoolAccountToggleView(BoardRequiredMixin, View):
         state = "有効" if user.is_active else "無効"
         messages.success(request, f"学校ID「{user.username}」を{state}にしました。")
         return redirect("school_account_list")
+
+# ---------- 送信の確認（CSRF）に失敗したとき ----------
+
+def csrf_failure(request, reason=""):
+    """403 の画面の代わりに、もう一度操作してもらうよう案内する
+
+    画面を開いたあとに、同じブラウザの別のタブでログイン・ログアウトをすると、
+    送信の確認に使う値が変わるため、前のタブからの送信は受け付けられなくなる。
+    """
+    user = request.user
+    messages.error(
+        request,
+        "画面を開いたあとにログイン状態が変わったため、送信できませんでした。"
+        "同じブラウザの別のタブで、別のアカウントにログイン（またはログアウト）していませんか？"
+        "内容を確認して、もう一度操作してください。",
+    )
+    home = home_url_for(user) if user.is_authenticated else None
+    return redirect(home or "login")

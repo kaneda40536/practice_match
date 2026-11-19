@@ -37,6 +37,7 @@ class PracticeMatch(models.Model):
         APPLICANT = "applicant", "申込校"
         OPPONENT = "opponent", "相手校"
         FACILITY = "facility", "施設"
+        UNDECIDED = "undecided", "未定"
 
     applicant_club = models.ForeignKey(
         Club, on_delete=models.CASCADE, related_name="sent_matches",
@@ -69,18 +70,32 @@ class PracticeMatch(models.Model):
     def venue_name(self):
         """会場の名前（施設名、または学校名）"""
         if self.venue_kind == self.VenueKind.FACILITY and self.facility:
-            return self.facility.name
+            return self.facility.display_name
         if self.venue_kind == self.VenueKind.APPLICANT:
             return self.applicant_club.school.name
-        return self.opponent_club.school.name
+        if self.venue_kind == self.VenueKind.OPPONENT:
+            return self.opponent_club.school.name
+        return "未定（相手校が決めます）"
+
+    @property
+    def venue_value(self):
+        """会場の選択肢の値（matching.venues.venue_choices と同じ形）"""
+        if self.venue_kind == self.VenueKind.FACILITY and self.facility_id:
+            return f"facility:{self.facility_id}"
+        return self.venue_kind
 
     @property
     def host_club(self):
-        """学校を会場にする場合の、会場になる部活動（施設なら None）"""
+        """学校で実施する場合の、会場になる学校の部活動（学校以外・未定なら None）"""
         if self.venue_kind == self.VenueKind.APPLICANT:
             return self.applicant_club
         if self.venue_kind == self.VenueKind.OPPONENT:
             return self.opponent_club
+        if self.venue_kind == self.VenueKind.FACILITY and self.facility and self.facility.school_id:
+            if self.facility.school_id == self.applicant_club.school_id:
+                return self.applicant_club
+            if self.facility.school_id == self.opponent_club.school_id:
+                return self.opponent_club
         return None
 
     def selectable_candidates(self):

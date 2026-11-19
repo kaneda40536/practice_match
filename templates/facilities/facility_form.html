@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}施設の{% if object %}編集{% else %}登録{% endif %}｜練習試合調整支援システム{% endblock %}
+{% block title %}会場の{% if object %}編集{% else %}登録{% endif %}｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}施設情報管理{% endblock %}
+{% block heading %}会場管理{% endblock %}
 
 {% block content %}
 
 <div class="account-form-heading">
-    <h2>{% if object %}施設情報の編集{% else %}新しい施設の登録{% endif %}</h2>
-    <p>施設の情報を入力してください。</p>
+    <h2>{% if object %}会場の編集{% else %}新しい会場の登録{% endif %}</h2>
+    <p>練習試合の会場になる公共の施設の情報を入力してください。</p>
 </div>
 
 <div class="account-form-card">
@@ -16,7 +16,7 @@
         <div class="account-form-error">競技がまだ登録されていません。先に「競技管理」で競技を登録してください。</div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" novalidate>
         {% csrf_token %}
 
         {% include "_form_fields.html" with form=form %}
@@ -24,7 +24,7 @@
         <div class="account-form-actions">
             <a href="{% url 'facility_list' %}" class="account-back-button">一覧に戻る</a>
             <button type="submit" class="account-save-button">
-                {% if object %}施設情報を更新する{% else %}施設を登録する{% endif %}
+                {% if object %}会場を更新する{% else %}会場を登録する{% endif %}
             </button>
         </div>
     </form>

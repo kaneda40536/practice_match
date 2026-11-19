@@ -2,6 +2,8 @@
 
 {% block title %}メッセージ｜練習試合調整支援システム{% endblock %}
 
+{% block live_watch %}messages{% endblock %}
+
 {% block heading %}メッセージ{% endblock %}
 
 {% block content %}
@@ -69,7 +71,7 @@
             <p>部活動が登録されていません。<a href="{% url 'my_club_list' %}">部活動管理</a>から登録してください。</p>
         </div>
     {% else %}
-        <form method="post" action="{% url 'message_start' %}" class="message-start-form">
+        <form method="post" novalidate action="{% url 'message_start' %}" class="message-start-form">
             {% csrf_token %}
 
             <div class="messages-school-item">

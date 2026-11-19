@@ -1,37 +1,37 @@
 {% extends "base.html" %}
 
-{% block title %}施設情報管理｜練習試合調整支援システム{% endblock %}
+{% block title %}会場管理｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}施設情報管理{% endblock %}
+{% block heading %}会場管理{% endblock %}
 
 {% block content %}
 
 <div class="welcome-area">
     <div>
-        <h2>登録済み施設一覧</h2>
-        <p>練習試合で利用する施設の情報を確認・管理できます。</p>
+        <h2>会場管理</h2>
+        <p>練習試合の会場になる公共の施設（市民体育館など）を登録・管理できます。各学校が「会場管理」で登録した学校内の会場も、下で確認できます。</p>
     </div>
 </div>
 
 <div class="account-summary">
     <div>
-        <span class="summary-label">REGISTERED FACILITIES</span>
+        <span class="summary-label">REGISTERED VENUES</span>
         <div class="summary-number">
             {{ facilities|length }}
-            <span>施設</span>
+            <span>会場</span>
         </div>
     </div>
     <a href="{% url 'facility_add' %}" class="admin-primary-button">
         <span>＋</span>
-        新しい施設を登録
+        新しい会場を登録
     </a>
 </div>
 
 <div class="admin-table-card">
     <div class="table-card-header">
         <div>
-            <h3>施設情報一覧</h3>
-            <p>登録されている施設の所在地や対応競技を確認できます。</p>
+            <h3>公共の会場一覧</h3>
+            <p>教育委員会が登録した会場です。すべての学校の練習試合で、会場の候補になります。</p>
         </div>
     </div>
 
@@ -40,7 +40,7 @@
             <table class="admin-data-table facility-data-table">
                 <thead>
                     <tr>
-                        <th>施設名</th>
+                        <th>会場名</th>
                         <th>所在地</th>
                         <th>対応競技</th>
                         <th>設備</th>
@@ -88,8 +88,56 @@
     {% else %}
         <div class="facility-empty">
             <div class="facility-empty-icon">⌖</div>
-            <h3>施設が登録されていません</h3>
-            <p>「新しい施設を登録」から施設情報を追加できます。</p>
+            <h3>公共の会場が登録されていません</h3>
+            <p>「新しい会場を登録」から会場を追加できます。</p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="admin-table-card school-venue-card">
+    <div class="table-card-header">
+        <div>
+            <h3>学校内の会場一覧（{{ school_facilities|length }}件）</h3>
+            <p>各学校が「会場管理」で登録した、学校内の会場です。その学校が関わる練習試合でだけ、会場の候補になります。登録・変更は各学校が行います。</p>
+        </div>
+    </div>
+
+    {% if school_facilities %}
+        <div class="admin-table-wrap">
+            <table class="admin-data-table facility-data-table">
+                <thead>
+                    <tr>
+                        <th>学校名</th>
+                        <th>会場名</th>
+                        <th>所在地（学校）</th>
+                        <th>対応競技</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facility in school_facilities %}
+                        <tr>
+                            <td>{{ facility.school.name }}</td>
+                            <td><span class="facility-name">{{ facility.name }}</span></td>
+                            <td><span class="facility-address">{{ facility.school.address|default:"—" }}</span></td>
+                            <td>
+                                <div class="facility-sports">
+                                    {% for sport in facility.sports.all %}
+                                        <span class="facility-sport-label">{{ sport.display_icon }} {{ sport.name }}</span>
+                                    {% empty %}
+                                        <span class="facility-no-sport">未登録</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="facility-empty">
+            <div class="facility-empty-icon">▦</div>
+            <h3>学校内の会場はまだ登録されていません</h3>
+            <p>各学校が「会場管理」から登録すると、ここに表示されます。</p>
         </div>
     {% endif %}
 </div>

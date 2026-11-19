@@ -132,6 +132,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # ログイン関連
 LOGIN_URL = "login"
 
+# 送信の確認（CSRF）に失敗したとき、403 の画面ではなく案内を出す
+CSRF_FAILURE_VIEW = "accounts.views.csrf_failure"
+
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 

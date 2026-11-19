@@ -65,6 +65,10 @@ class TeacherPagesTest(TestCase):
             reverse("club_availability", args=[self.club.pk]),
             reverse("opponent_search"),
             reverse("opponent_search") + f"?club={self.club.pk}",
+            reverse("opponent_search") + f"?club={self.club.pk}&level=higher",
+            reverse("opponent_detail", args=[self.club.pk, self.other_club.pk]),
+            reverse("my_facility_list"),
+            reverse("tournament_results"),
             reverse("match_request", args=[self.club.pk, self.other_club.pk]),
             reverse("received_matches"),
             reverse("sent_matches"),
@@ -165,8 +169,30 @@ class BoardPagesTest(TestCase):
 
     def test_teacher_cannot_open_board_pages(self):
         self.client.force_login(self.teacher)
-        response = self.client.get(reverse("school_account_list"))
-        self.assertEqual(response.status_code, 403)
+        # 403 の画面ではなく、自分のホームに案内される
+        response = self.client.get(reverse("school_account_list"), follow=True)
+        self.assertRedirects(response, reverse("teacher_home"))
+        self.assertContains(response, "では開けないため、ホームに移動しました")
+
+    def test_board_opening_teacher_page_goes_to_board_home(self):
+        response = self.client.get(reverse("received_matches"), follow=True)
+        self.assertRedirects(response, reverse("board_home"))
+        self.assertContains(response, "flash--warning")
+
+    def test_csrf_failure_shows_guidance_instead_of_403(self):
+        from django.test import Client
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.board)
+        response = client.post(reverse("sport_add"), {"name": "野球", "icon": "⚾"}, follow=True)
+        self.assertRedirects(response, reverse("board_home"))
+        self.assertContains(response, "ログイン状態が変わったため、送信できませんでした")
+        self.assertFalse(Sport.objects.filter(name="野球").exists())
+
+        # ログインしていなければ、ログイン画面に案内する
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(reverse("login"), {"username": "board", "password": "x"}, follow=True)
+        self.assertRedirects(response, reverse("login"))
+        self.assertContains(response, "ログイン状態が変わったため、送信できませんでした")
 
 
 class LoginPageTest(TestCase):
@@ -174,6 +200,22 @@ class LoginPageTest(TestCase):
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "admin-login-page")
+
+    def test_forms_skip_browser_check(self):
+        # ブラウザの「このフィールドを入力してください」ではなく、サーバーのエラーを出す
+        response = self.client.get(reverse("login"))
+        self.assertContains(response, "novalidate")
+
+    def test_empty_fields_show_which_is_missing(self):
+        cases = [
+            ({"username": "", "password": ""}, "学校IDとパスワードを入力してください。"),
+            ({"username": "a_school", "password": ""}, "パスワードを入力してください。"),
+            ({"username": "", "password": "x"}, "学校IDを入力してください。"),
+        ]
+        for data, message in cases:
+            with self.subTest(data=data):
+                response = self.client.post(reverse("login"), data)
+                self.assertContains(response, message)
 
     def test_wrong_password_shows_error_and_keeps_id(self):
         response = self.client.post(reverse("login"), {"username": "nobody", "password": "x"})

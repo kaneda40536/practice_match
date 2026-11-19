@@ -4595,3 +4595,76 @@ body.entry-page {
     }
 }
 
+/* 対戦相手検索：一覧テーブル */
+.opponent-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+    background: #ffffff;
+    border: 1px solid #dce5ef;
+    border-radius: 12px;
+}
+
+.opponent-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.opponent-table th {
+    background: #f3f7fc;
+    color: #536b85;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 17px 15px;
+    white-space: nowrap;
+}
+
+.opponent-table td {
+    padding: 18px 15px;
+    border-top: 1px solid #e5ebf2;
+    color: #31506f;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.opponent-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.opponent-table .opponent-school-name {
+    color: #193852;
+    font-weight: 700;
+}
+
+/* 競技レベル */
+.opponent-level {
+    display: inline-block;
+    padding: 6px 13px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.opponent-level.unknown {
+    background: #edf0f4;
+    color: #687789;
+}
+
+/* 詳細ボタン */
+.opponent-table .opponent-detail-button {
+    display: inline-block;
+    padding: 8px 14px;
+    background: #edf4ff;
+    color: #2878d8;
+    border: 1px solid #c8dcfb;
+    border-radius: 7px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.opponent-table .opponent-detail-button:hover {
+    background: #dceaff;
+}

@@ -31,7 +31,7 @@
         <div class="club-error">{{ error }}</div>
     {% endfor %}
 
-    <form method="post" action="{% url 'my_club_add' %}" class="club-register-form">
+    <form method="post" novalidate action="{% url 'my_club_add' %}" class="club-register-form">
         {% csrf_token %}
 
         <div class="club-register-fields">
@@ -66,7 +66,8 @@
         <div class="club-heading-icon">▤</div>
         <div>
             <h3>登録済みの部活動</h3>
-            <p>「希望日」から、練習試合をしたい日を登録してください。対戦相手の検索で使われます。</p>
+            <p>「希望日」から、練習試合をしたい日を登録してください。対戦相手の検索で使われます。<br>
+               「希望する対戦レベル」に合う相手が、対戦相手検索で先に表示されます。</p>
         </div>
     </div>
 
@@ -79,6 +80,7 @@
                         <th>部活動名</th>
                         <th>競技</th>
                         <th>登録中の希望日</th>
+                        <th>希望する対戦レベル</th>
                         <th class="club-action-column">操作</th>
                     </tr>
                 </thead>
@@ -93,6 +95,18 @@
                                 {% else %}
                                     <span class="muted">未登録</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" action="{% url 'my_club_level' club.pk %}" class="club-level-form">
+                                    {% csrf_token %}
+                                    <label for="level-{{ club.pk }}" class="visually-hidden">{{ club.name }}の希望する対戦レベル</label>
+                                    <select name="desired_level" id="level-{{ club.pk }}">
+                                        {% for value, label in level_choices %}
+                                            <option value="{{ value }}"{% if value == club.desired_level %} selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="club-edit-button">変更</button>
+                                </form>
                             </td>
                             <td>
                                 <div class="club-actions">

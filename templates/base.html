@@ -5,7 +5,9 @@
     サイドバーのメニューや表示名は accounts/context_processors.py の navigation が渡します。
     メニューの中身を変えたいときは accounts/menus.py を編集してください。
 
-    各画面で使えるブロック：title / heading / body_class / content
+    各画面で使えるブロック：title / heading / body_class / content / live_watch
+    live_watch に matches・messages・dates を書くと、そのデータが変わったときに
+    画面の中身が自動で新しくなります（static/js/live-update.js）。
 {% endcomment %}
 <!DOCTYPE html>
 <html lang="ja">
@@ -17,7 +19,8 @@
     <link rel="stylesheet" href="{% static 'css/admin.css' %}">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body class="admin-dashboard {% block body_class %}{% endblock %}">
+<body class="admin-dashboard {% block body_class %}{% endblock %}"
+      {% if nav_live_url %}data-live-url="{{ nav_live_url }}" data-live-watch="{% block live_watch %}{% endblock %}"{% endif %}>
 
     <!-- 左側サイドバー -->
     <aside class="admin-sidebar">
@@ -44,7 +47,7 @@
 
                 {% for item in section.items %}
                     {% if item.url %}
-                        <a href="{{ item.url }}" class="sidebar-link{% if item.active %} active{% endif %}">
+                        <a href="{{ item.url }}" class="sidebar-link{% if item.active %} active{% endif %}"{% if item.badge %} data-badge-key="{{ item.badge }}"{% endif %}>
                             <span class="nav-icon">{{ item.icon }}</span>
                             <span>{{ item.title }}</span>
                             {% if item.badge_count %}
@@ -106,6 +109,11 @@
         </footer>
 
     </main>
+
+    {% if nav_live_url %}
+        <div class="live-notice" id="live-notice" role="status" aria-live="polite" hidden></div>
+        <script src="{% static 'js/live-update.js' %}" defer></script>
+    {% endif %}
 
 </body>
 </html>

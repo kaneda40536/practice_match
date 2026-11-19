@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}会場管理｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}会場管理{% endblock %}
+
+{% block content %}
+
+<section class="school-intro">
+    <span class="english-label">FACILITY MANAGEMENT</span>
+    <h2>会場管理</h2>
+    <p>自分の学校内にある施設を登録・確認できます。登録した施設は、練習試合の会場の候補になります。</p>
+</section>
+
+<!-- 施設登録 -->
+<section class="club-section">
+    <div class="club-section-heading">
+        <div class="club-heading-icon green">＋</div>
+        <div>
+            <h3>会場の登録</h3>
+            <p>学校内で利用できる施設を登録できます。所在地は学校の住所を使います。</p>
+        </div>
+    </div>
+
+    {% for error in form.non_field_errors %}
+        <div class="club-error">{{ error }}</div>
+    {% endfor %}
+
+    {% include "facilities/_school_facility_fields.html" with form=form button_label="＋ 登録" %}
+</section>
+
+<!-- 登録済み施設 -->
+<section class="club-section">
+    <div class="club-section-heading">
+        <div class="club-heading-icon">▦</div>
+        <div>
+            <h3>登録済みの会場</h3>
+            <p>現在登録されている学校施設の一覧です。</p>
+        </div>
+    </div>
+
+    {% if facilities %}
+        <div class="club-table-wrapper">
+            <table class="club-table">
+                <thead>
+                    <tr>
+                        <th>会場名</th>
+                        <th>対応競技</th>
+                        <th class="club-action-column">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facility in facilities %}
+                        <tr>
+                            <td class="club-name-cell">{{ facility.name }}</td>
+                            <td>
+                                {% for sport in facility.sports.all %}
+                                    <span class="club-sport-label">{{ sport.display_icon }} {{ sport.name }}</span>
+                                {% empty %}
+                                    未設定
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <div class="club-actions">
+                                    <a href="{% url 'my_facility_edit' facility.pk %}" class="club-edit-button">編集</a>
+                                    <form method="post" action="{% url 'my_facility_delete' facility.pk %}"
+                                          onsubmit="return confirm('この施設を削除しますか？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="club-delete-button">削除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="club-empty">
+            <div class="club-empty-icon">▦</div>
+            <p>登録されている会場はありません。</p>
+            <span>上のフォームから会場を登録できます。</span>
+        </div>
+    {% endif %}
+</section>
+
+<div class="club-back-area">
+    <a href="{% url 'teacher_home' %}" class="club-back-button">← 学校ホームに戻る</a>
+</div>
+
+{% endblock %}

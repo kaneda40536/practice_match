@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}施設の削除｜練習試合調整支援システム{% endblock %}
+{% block title %}会場の削除｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}施設情報管理{% endblock %}
+{% block heading %}会場管理{% endblock %}
 
 {% block content %}
 
 <div class="account-form-heading">
-    <h2>施設情報の削除</h2>
-    <p>以下の施設情報を削除してもよろしいですか？</p>
+    <h2>会場の削除</h2>
+    <p>以下の会場を削除してもよろしいですか？</p>
 </div>
 
 <div class="account-form-card">
     {% if match_count %}
         <div class="confirm-warning">
-            <strong>この施設は削除できません。</strong>
+            <strong>この会場は削除できません。</strong>
             <ul>
                 <li>練習試合の会場として使われています（{{ match_count }}件）</li>
             </ul>
@@ -24,7 +24,7 @@
     {% endif %}
 
     <dl class="confirm-list">
-        <dt>施設名</dt>
+        <dt>会場名</dt>
         <dd>{{ object.name }}</dd>
         <dt>所在地</dt>
         <dd>{{ object.address }}</dd>

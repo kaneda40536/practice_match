@@ -67,4 +67,6 @@ def navigation(request):
         "nav_brand_label": "SCHOOL SYSTEM",
         "nav_portal_label": "SCHOOL PORTAL",
         "nav_user_name": school.name if school else user.username,
+        # 画面の自動更新で問い合わせる先（matching.views.live_updates）
+        "nav_live_url": reverse("live_updates") if school else None,
     }

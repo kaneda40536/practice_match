@@ -12,7 +12,7 @@
     <p>{{ applicant }} → {{ opponent }}　候補日を複数選んで申し込みます。相手校が候補日の中から1日を選ぶと確定します。</p>
 </section>
 
-<form method="post">
+<form method="post" novalidate>
     {% csrf_token %}
 
     {% for error in form.non_field_errors %}
@@ -98,7 +98,7 @@
     <div class="opponent-section-heading">
         <div class="opponent-heading-icon">⌖</div>
         <div>
-            <h3>会場候補（施設）</h3>
+            <h3>会場候補（学校内の施設・公共の施設）</h3>
             <p>両校からの距離の合計が近い順です。距離は直線距離です。</p>
         </div>
     </div>
@@ -118,16 +118,16 @@
             <tbody>
                 {% for c in candidates %}
                     <tr>
-                        <td><strong>{{ c.facility.name }}</strong></td>
-                        <td>{{ c.facility.address }}</td>
+                        <td><strong>{{ c.facility.display_name }}</strong>{% if c.owner %}<br><small class="help-text">学校内の施設</small>{% endif %}</td>
+                        <td>{{ c.facility.full_address|default:"—" }}</td>
                         <td>{% if c.dist_a is not None %}{{ c.dist_a }} km{% else %}—{% endif %}</td>
                         <td>{% if c.dist_b is not None %}{{ c.dist_b }} km{% else %}—{% endif %}</td>
                         <td>{% if c.total is not None %}<strong>{{ c.total }} km</strong>{% else %}—{% endif %}</td>
                         <td>
                             <div class="table-actions">
-                                <a href="https://www.google.com/maps/dir/?api=1&origin={{ applicant.school.address|urlencode }}&destination={{ c.facility.address|urlencode }}"
+                                <a href="https://www.google.com/maps/dir/?api=1&origin={{ applicant.school.address|urlencode }}&destination={{ c.facility.full_address|urlencode }}"
                                    target="_blank" rel="noopener" class="action-button secondary">自校から ↗</a>
-                                <a href="https://www.google.com/maps/dir/?api=1&origin={{ opponent.school.address|urlencode }}&destination={{ c.facility.address|urlencode }}"
+                                <a href="https://www.google.com/maps/dir/?api=1&origin={{ opponent.school.address|urlencode }}&destination={{ c.facility.full_address|urlencode }}"
                                    target="_blank" rel="noopener" class="action-button secondary">相手校から ↗</a>
                             </div>
                         </td>

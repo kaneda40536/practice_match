@@ -2,6 +2,8 @@
 
 {% block title %}届いた申し込み｜練習試合調整支援システム{% endblock %}
 
+{% block live_watch %}matches{% endblock %}
+
 {% block heading %}届いた申し込み{% endblock %}
 
 {% block content %}
@@ -36,7 +38,7 @@
         {% if proposal.open_candidates %}
             <p>以下から試合を行う日を1日選択してください。</p>
 
-            <form method="post" action="{% url 'match_respond' proposal.pk %}">
+            <form method="post" novalidate action="{% url 'match_respond' proposal.pk %}">
                 {% csrf_token %}
 
                 <div class="candidate-options">
@@ -46,6 +48,25 @@
                             <span>{{ candidate.date|date:"Y年n月j日（D）" }}</span>
                         </label>
                     {% endfor %}
+                </div>
+
+                <h3>試合会場を選択</h3>
+                <p>
+                    試合を行う会場を1つ選択してください。
+                    {% if proposal.selected_venue %}申し込んだ学校が希望した会場が選ばれています。変更もできます。{% else %}申し込んだ学校は、会場を「未定」にしています。{% endif %}
+                </p>
+                <div class="form-group">
+                    <label for="venue-{{ proposal.pk }}" class="visually-hidden">試合会場</label>
+                    <select name="venue" id="venue-{{ proposal.pk }}" required>
+                        {% for group in proposal.venue_groups %}
+                            {% if group.label %}<optgroup label="{{ group.label }}">{% endif %}
+                            {% for value, label in group.options %}
+                                <option value="{{ value }}"{% if value == proposal.selected_venue %} selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                            {% if group.label %}</optgroup>{% endif %}
+                        {% endfor %}
+                    </select>
+                    <p class="help-text">学校で実施する場合は、選んだ日にその学校が「受け入れ可」を登録している必要があります。</p>
                 </div>
 
                 <div class="form-actions proposal-actions">
