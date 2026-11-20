@@ -21,7 +21,6 @@ urlpatterns = [
     path("my/clubs/", views.MyClubListView.as_view(), name="my_club_list"),
     path("my/clubs/add/", views.MyClubCreateView.as_view(), name="my_club_add"),
     path("my/clubs/<int:pk>/delete/", views.MyClubDeleteView.as_view(), name="my_club_delete"),
-    path("my/clubs/<int:pk>/level/", views.MyClubLevelView.as_view(), name="my_club_level"),
 
     # 大会成績管理（顧問）
     path("my/tournaments/", views.TournamentResultListView.as_view(), name="tournament_results"),

@@ -3,11 +3,12 @@ from . import views
 
 urlpatterns = [
     # 希望日
-    path("clubs/<int:club_pk>/dates/", views.ClubAvailabilityView.as_view(), name="club_availability"),
-    path("dates/<int:pk>/delete/", views.AvailabilityDeleteView.as_view(), name="availability_delete"),
+    path("schedule/clubs/<int:club_pk>/dates/", views.ClubAvailabilityView.as_view(), name="club_availability"),
+    path("schedule/dates/<int:pk>/delete/", views.AvailabilityDeleteView.as_view(), name="availability_delete"),
 
     # 対戦相手検索
     path("search/", views.OpponentSearchView.as_view(), name="opponent_search"),
+    path("search/<int:club_pk>/level/", views.ClubLevelView.as_view(), name="club_level"),
     path("search/<int:club_pk>/<int:opponent_pk>/", views.OpponentDetailView.as_view(), name="opponent_detail"),
 
     # 練習試合の申し込み

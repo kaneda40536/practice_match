@@ -1,14 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count, ProtectedError, Q
-from django.utils import timezone
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, TemplateView, View
 from accounts.views import BoardRequiredMixin, TeacherRequiredMixin
 from .forms import (
-    ClubForm, ClubLevelForm, SchoolAddressForm, SchoolUpdateForm, SportForm, TournamentResultForm,
+    ClubForm, SchoolAddressForm, SchoolUpdateForm, SportForm, TournamentResultForm,
 )
 from .models import Area, Club, School, Sport, TournamentResult
 
@@ -177,23 +176,19 @@ class MySchoolView(TeacherRequiredMixin, DetailView):
 # ---------- 自校の部活動管理（顧問） ----------
 
 class MyClubsContextMixin:
-    """部活動管理の画面に、自校の部活動の一覧（希望日の件数つき）を渡す"""
+    """部活動管理の画面に、自校の部活動の一覧を渡す
+    （希望日は「日程調整」、希望する対戦レベルは「対戦相手検索」で設定する）"""
 
     def get_my_clubs(self):
-        today = timezone.localdate()
         return (
             Club.objects.filter(school=self.request.user.school)
             .select_related("sport")
-            .annotate(
-                date_count=Count("availability", filter=Q(availability__date__gte=today))
-            )
             .order_by("sport__name", "gender")
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["clubs"] = self.get_my_clubs()
-        context["level_choices"] = Club.DesiredLevel.choices
         return context
 
 
@@ -239,20 +234,6 @@ class MyClubDeleteView(TeacherRequiredMixin, DeleteView):
         response = super().form_valid(form)
         messages.success(self.request, f"「{name}」を削除しました。")
         return response
-
-
-class MyClubLevelView(TeacherRequiredMixin, View):
-    """部活動の「希望する対戦レベル」を変更する（部活動管理の一覧から）"""
-
-    def post(self, request, pk):
-        club = get_object_or_404(Club, pk=pk, school=request.user.school)
-        form = ClubLevelForm(request.POST, instance=club)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f"「{club.name}」の希望する対戦レベルを「{club.get_desired_level_display()}」にしました。")
-        else:
-            messages.error(request, "希望する対戦レベルを選び直してください。")
-        return redirect("my_club_list")
 
 
 # ---------- 大会成績管理（顧問） ----------

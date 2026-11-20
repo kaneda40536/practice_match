@@ -94,9 +94,20 @@ class TeacherPagesTest(TestCase):
 
     def test_sidebar_marks_current_page(self):
         response = self.client.get(reverse("club_availability", args=[self.club.pk]))
-        # 希望日の画面では「部活動管理」が光る
+        # 希望日の画面では「日程調整」が光る
         self.assertContains(
-            response, f'href="{reverse("my_club_list")}" class="sidebar-link active"')
+            response, f'href="{reverse("schedule")}" class="sidebar-link active"')
+
+    def test_club_page_is_list_only(self):
+        # 部活動管理は一覧（と登録・削除）だけ。希望日・対戦レベルは別の画面で設定する
+        response = self.client.get(reverse("my_club_list"))
+        self.assertNotContains(response, reverse("club_availability", args=[self.club.pk]))
+        self.assertNotContains(response, "desired_level")
+        # 希望日は日程調整、対戦レベルは対戦相手検索から
+        response = self.client.get(reverse("schedule") + f"?club={self.club.pk}")
+        self.assertContains(response, reverse("club_availability", args=[self.club.pk]))
+        response = self.client.get(reverse("opponent_search") + f"?club={self.club.pk}&level=higher")
+        self.assertContains(response, reverse("club_level", args=[self.club.pk]))
 
     def test_add_club_from_list_page(self):
         tennis = Sport.objects.create(name="テニス")

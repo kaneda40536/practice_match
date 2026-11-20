@@ -2,7 +2,7 @@
 
 {% block title %}希望日の登録｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}部活動管理{% endblock %}
+{% block heading %}日程調整{% endblock %}
 
 {% block content %}
 
@@ -111,7 +111,8 @@
 </section>
 
 <div class="club-back-area">
-    <a href="{% url 'my_club_list' %}" class="club-back-button">← 部活動管理に戻る</a>
+    <a href="{% url 'schedule' %}?club={{ club.pk }}" class="club-back-button">← 日程調整に戻る</a>
+    <a href="{% url 'opponent_search' %}?club={{ club.pk }}" class="club-back-button">対戦相手を検索する →</a>
 </div>
 
 {% endblock %}

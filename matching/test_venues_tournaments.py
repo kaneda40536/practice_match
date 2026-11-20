@@ -254,7 +254,8 @@ class RecommendationTest(TestCase):
 
     def test_default_level_comes_from_club_setting(self):
         self.client.force_login(self.user)
-        self.client.post(reverse("my_club_level", args=[self.mine.pk]), {"desired_level": "higher"})
+        response = self.client.post(reverse("club_level", args=[self.mine.pk]), {"desired_level": "higher"})
+        self.assertRedirects(response, reverse("opponent_search") + f"?club={self.mine.pk}")
         self.mine.refresh_from_db()
         self.assertEqual(self.mine.desired_level, "higher")
         response = self.client.get(reverse("opponent_search") + f"?club={self.mine.pk}")

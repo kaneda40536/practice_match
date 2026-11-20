@@ -11,6 +11,7 @@ from accounts.context_processors import teacher_badges
 from accounts.models import User
 from accounts.views import TeacherRequiredMixin
 from schools.distance import distance_km
+from schools.forms import ClubLevelForm
 from schools.models import Area, Club
 from .forms import (
     MAX_CANDIDATES, AvailabilityForm, ConversationStartForm, MatchRequestForm,
@@ -185,6 +186,22 @@ def opponent_rows(club, opponents, desired_level, get_distance):
 
     rows.sort(key=sort_key)
     return rows
+
+
+class ClubLevelView(TeacherRequiredMixin, View):
+    """部活動の「希望する対戦レベル」を保存する（対戦相手検索の画面から）。
+    保存したレベルは、次に検索するとき最初から選ばれる"""
+
+    def post(self, request, club_pk):
+        club = get_object_or_404(Club, pk=club_pk, school=request.user.school)
+        form = ClubLevelForm(request.POST, instance=club)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, f"「{club.name}」の希望する対戦レベルを「{club.get_desired_level_display()}」にしました。")
+        else:
+            messages.error(request, "希望する対戦レベルを選び直してください。")
+        return redirect(f"{reverse('opponent_search')}?club={club.pk}")
 
 
 class OpponentDetailView(TeacherRequiredMixin, TemplateView):

@@ -88,6 +88,20 @@
             <span>と同じ競技・区分の部活動</span>
         </div>
 
+        <!-- 部活動の設定：希望する対戦レベル・希望日 -->
+        <div class="opponent-club-settings">
+            <form method="post" action="{% url 'club_level' selected_club.pk %}" class="club-level-form">
+                {% csrf_token %}
+                <span>{{ selected_club.name }}の希望する対戦レベル：<strong>{{ selected_club.get_desired_level_display }}</strong></span>
+                {% if selected_level != selected_club.desired_level %}
+                    <input type="hidden" name="desired_level" value="{{ selected_level }}">
+                    <button type="submit" class="club-edit-button">「{{ selected_level_label }}」を希望として保存</button>
+                {% endif %}
+            </form>
+            <a href="{% url 'club_availability' selected_club.pk %}" class="club-edit-button">自校の希望日を登録・編集する</a>
+        </div>
+        <p class="help-text">希望として保存したレベルは、次にこの部活動で検索するとき、最初から選ばれます。</p>
+
         {% if not has_my_dates %}
             <p class="notice-box">
                 この部活動には、今日以降の希望日が登録されていないため、共通の希望日は表示されません。

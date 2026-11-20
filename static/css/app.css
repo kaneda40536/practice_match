@@ -1284,3 +1284,24 @@ a.schedule-apply-button {
     border-radius: 7px;
     font-size: 13px;
 }
+
+/* 対戦相手検索：部活動の設定（希望する対戦レベル・希望日） */
+.opponent-club-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0 4px;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    font-size: 14px;
+}
+
+.club-back-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
