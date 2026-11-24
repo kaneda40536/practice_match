@@ -1257,17 +1257,62 @@ a.schedule-apply-button {
 
 /* ---------- 会場管理：対応競技のチェックボックス ---------- */
 
-.facility-sport-options {
-    flex-wrap: wrap;
-    gap: 10px 18px;
+.club-field-label {
+    color: #334155;
+    font-size: 14px;
+    font-weight: 700;
 }
 
-.facility-sport-option {
-    display: inline-flex;
+.facility-sport-help {
+    margin: -4px 0 2px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* 対応競技：チェックボックスを、押しやすいカードの並びにする */
+.facility-sport-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+}
+
+.club-field .facility-sport-option {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    font-weight: normal;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+    background: #fbfcfe;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.club-field .facility-sport-option:hover {
+    border-color: #4788dc;
+    background: #ffffff;
+}
+
+/* デザインの「.club-field input」（幅100%・高さ46px）を、チェックボックスでは打ち消す */
+.club-field .facility-sport-option input[type="checkbox"] {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    accent-color: #2f6fc6;
+    cursor: pointer;
+}
+
+.club-field .facility-sport-option:has(input:checked) {
+    border-color: #2f6fc6;
+    background: #eef5ff;
+    color: #1d4f91;
 }
 
 /* ---------- 部活動管理：希望する対戦レベル ---------- */
@@ -1304,4 +1349,8 @@ a.schedule-apply-button {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+}
+
+.facility-sport-field {
+    margin-top: 22px;
 }
