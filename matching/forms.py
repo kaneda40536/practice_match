@@ -212,18 +212,14 @@ class MessageForm(RequiredMessageMixin, forms.ModelForm):
 
 
 class ConversationStartForm(RequiredMessageMixin, forms.Form):
-    """自由メッセージを始めるときに、自校と相手校の部活動を選ぶフォーム"""
+    """自由メッセージを始めるときに、相手校の部活動を選ぶフォーム（自分の側はログイン中の部活動）"""
 
-    my_club = forms.ModelChoiceField(label="自校の部活動", queryset=Club.objects.none(),
-                                     empty_label="部活動を選択してください")
     opponent_club = forms.ModelChoiceField(label="相手校の部活動", queryset=Club.objects.none(),
                                            empty_label="部活動を選択してください")
 
-    def __init__(self, *args, school, **kwargs):
+    def __init__(self, *args, club, **kwargs):
         super().__init__(*args, **kwargs)
         clubs = Club.objects.select_related("school", "sport")
-        self.fields["my_club"].queryset = clubs.filter(school=school).order_by("sport__name", "gender")
-        self.fields["my_club"].label_from_instance = lambda c: c.name
         self.fields["opponent_club"].queryset = (
-            clubs.exclude(school=school).order_by("school__name", "sport__name", "gender"))
+            clubs.exclude(school_id=club.school_id).order_by("school__name", "sport__name", "gender"))
         self.fields["opponent_club"].label_from_instance = lambda c: f"{c.school.name}：{c.name}"

@@ -9,7 +9,7 @@
 <div class="welcome-area">
     <div>
         <h2>会場管理</h2>
-        <p>練習試合の会場になる公共の施設（市民体育館など）を登録・管理できます。各学校が「会場管理」で登録した学校内の会場も、下で確認できます。</p>
+        <p>練習試合の会場になる公共の施設（市民体育館など）を登録・管理できます。</p>
     </div>
 </div>
 
@@ -90,54 +90,6 @@
             <div class="facility-empty-icon">⌖</div>
             <h3>公共の会場が登録されていません</h3>
             <p>「新しい会場を登録」から会場を追加できます。</p>
-        </div>
-    {% endif %}
-</div>
-
-<div class="admin-table-card school-venue-card">
-    <div class="table-card-header">
-        <div>
-            <h3>学校内の会場一覧（{{ school_facilities|length }}件）</h3>
-            <p>各学校が「会場管理」で登録した、学校内の会場です。その学校が関わる練習試合でだけ、会場の候補になります。登録・変更は各学校が行います。</p>
-        </div>
-    </div>
-
-    {% if school_facilities %}
-        <div class="admin-table-wrap">
-            <table class="admin-data-table facility-data-table">
-                <thead>
-                    <tr>
-                        <th>学校名</th>
-                        <th>会場名</th>
-                        <th>所在地（学校）</th>
-                        <th>対応競技</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for facility in school_facilities %}
-                        <tr>
-                            <td>{{ facility.school.name }}</td>
-                            <td><span class="facility-name">{{ facility.name }}</span></td>
-                            <td><span class="facility-address">{{ facility.school.address|default:"—" }}</span></td>
-                            <td>
-                                <div class="facility-sports">
-                                    {% for sport in facility.sports.all %}
-                                        <span class="facility-sport-label">{{ sport.display_icon }} {{ sport.name }}</span>
-                                    {% empty %}
-                                        <span class="facility-no-sport">未登録</span>
-                                    {% endfor %}
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="facility-empty">
-            <div class="facility-empty-icon">▦</div>
-            <h3>学校内の会場はまだ登録されていません</h3>
-            <p>各学校が「会場管理」から登録すると、ここに表示されます。</p>
         </div>
     {% endif %}
 </div>

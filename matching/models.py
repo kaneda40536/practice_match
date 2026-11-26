@@ -241,8 +241,9 @@ class Conversation(models.Model):
     def get_kind_display(self):
         return self.Kind(self.kind).label
 
-    def includes(self, school):
-        return school.pk in (self.school_a_id, self.school_b_id)
+    def includes(self, club):
+        """club（部活動）が参加している会話か。部活動を指定しない以前の会話は、どの部活動も見られない"""
+        return club.pk in (self.club_a_id, self.club_b_id)
 
     def other_school(self, school):
         return self.school_b if self.school_a_id == school.pk else self.school_a
@@ -254,8 +255,9 @@ class Conversation(models.Model):
         return self.club_b if self.school_a_id == school.pk else self.club_a
 
     @staticmethod
-    def for_school(school):
-        return Conversation.objects.filter(Q(school_a=school) | Q(school_b=school))
+    def for_club(club):
+        """club（部活動）が参加している会話"""
+        return Conversation.objects.filter(Q(club_a=club) | Q(club_b=club))
 
     @classmethod
     def for_match(cls, match):
@@ -310,9 +312,10 @@ class Message(models.Model):
         Conversation.objects.filter(pk=self.conversation_id).update(last_message_at=self.created_at)
 
     @staticmethod
-    def unread_for(school):
-        """school に届いている、まだ読んでいないメッセージ"""
+    def unread_for(club):
+        """club（部活動）に届いている、まだ読んでいないメッセージ。
+        会話の2つの部活動は必ず別の学校なので、送信した学校で自分側かどうかが分かる"""
         return Message.objects.filter(
-            Q(conversation__school_a=school) | Q(conversation__school_b=school),
+            Q(conversation__club_a=club) | Q(conversation__club_b=club),
             is_read=False,
-        ).exclude(sender=school)
+        ).exclude(sender_id=club.school_id)

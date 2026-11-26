@@ -27,18 +27,11 @@
     <div class="table-card-header">
         <div>
             <h3>部活動一覧</h3>
-            <p>地域・競技・区分で絞り込めます。</p>
+            <p>競技・区分で絞り込めます。</p>
         </div>
     </div>
 
     <form method="get" class="filter-bar">
-        <select name="area" aria-label="地域">
-            <option value="">すべての地域</option>
-            {% for area in areas %}
-                <option value="{{ area.pk }}"{% if area.pk|stringformat:"s" == selected.area %} selected{% endif %}>{{ area.name }}</option>
-            {% endfor %}
-        </select>
-
         <select name="sport" aria-label="競技">
             <option value="">すべての競技</option>
             {% for sport in sports %}
@@ -63,7 +56,6 @@
                 <thead>
                     <tr>
                         <th>学校名</th>
-                        <th>地域</th>
                         <th>部活動名</th>
                         <th>競技</th>
                     </tr>
@@ -72,13 +64,6 @@
                     {% for club in clubs %}
                         <tr>
                             <td><span class="club-school-name">{{ club.school.name }}</span></td>
-                            <td>
-                                {% if club.school.area %}
-                                    <span class="region-label">{{ club.school.area.name }}</span>
-                                {% else %}
-                                    <span class="unregistered">—</span>
-                                {% endif %}
-                            </td>
                             <td><span class="club-name">{{ club.name }}</span></td>
                             <td><span class="club-sport-label">{{ club.sport.display_icon }} {{ club.sport.name }}</span></td>
                         </tr>

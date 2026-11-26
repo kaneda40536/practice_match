@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}競技の{% if object %}編集{% else %}登録{% endif %}｜練習試合調整支援システム{% endblock %}
+{% block title %}競技の登録｜練習試合調整支援システム{% endblock %}
 
 {% block heading %}競技管理{% endblock %}
 
 {% block content %}
 
 <div class="account-form-heading">
-    <h2>{% if object %}競技情報の編集{% else %}新しい競技の登録{% endif %}</h2>
+    <h2>新しい競技の登録</h2>
     <p>システムで使用する競技の情報を入力してください。</p>
 </div>
 
@@ -19,7 +19,7 @@
 
         <div class="account-form-actions">
             <a href="{% url 'sport_list' %}" class="account-back-button">キャンセル</a>
-            <button type="submit" class="account-save-button">保存する</button>
+            <button type="submit" class="account-save-button">登録する</button>
         </div>
     </form>
 </div>

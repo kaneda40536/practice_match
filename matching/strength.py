@@ -4,8 +4,6 @@
 
 1. 大会成績（直近3年度分。登録は任意）
    ・大会規模（全国＞都道府県＞地区）と成績（優勝〜出場）を点数にして、いちばん良い成績どうしを比べる。
-   ・地域によって大会の規模や制度が違うので、地域が違う相手とは「地区大会」の成績を比べない
-     （都道府県大会・全国大会の成績だけで比べる）。
 2. 過去の対戦結果（直近3年度分。このシステムで登録した練習試合の結果）
    ・勝ち越していれば「格下」寄り、負け越していれば「格上」寄りとみなす。
 
@@ -70,9 +68,8 @@ def recent_results(clubs):
     return grouped
 
 
-def best_result(results, include_district):
-    usable = [r for r in results if include_district or r.level != TournamentResult.Level.DISTRICT]
-    return max(usable, key=result_points, default=None)
+def best_result(results):
+    return max(results, key=result_points, default=None)
 
 
 def head_to_head(my_club, other_clubs):
@@ -102,15 +99,11 @@ def head_to_head(my_club, other_clubs):
 
 def estimate(my_club, other_club, my_results, their_results, record):
     """相手のレベルを推定する。relation・label・reasons（判断の理由）を返す"""
-    same_area = (
-        my_club.school.area_id is not None
-        and my_club.school.area_id == other_club.school.area_id
-    )
     signals = []
     reasons = []
 
-    mine = best_result(my_results, include_district=same_area)
-    theirs = best_result(their_results, include_district=same_area)
+    mine = best_result(my_results)
+    theirs = best_result(their_results)
     if mine and theirs:
         diff = result_points(theirs) - result_points(mine)
         signals.append(1 if diff >= SAME_MARGIN else -1 if diff <= -SAME_MARGIN else 0)
@@ -119,9 +112,6 @@ def estimate(my_club, other_club, my_results, their_results, record):
         reasons.append(f"相手の大会成績：{result_label(theirs)}（自校の比べられる成績が未登録）")
     elif mine and their_results:
         reasons.append("相手の比べられる大会成績がありません")
-
-    if not same_area and any(r.level == TournamentResult.Level.DISTRICT for r in my_results + their_results):
-        reasons.append("地域が違うため、地区大会の成績は比べていません")
 
     if record:
         win, lose, draw = record["win"], record["lose"], record["draw"]

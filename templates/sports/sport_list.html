@@ -9,7 +9,7 @@
 <div class="welcome-area">
     <div>
         <h2>登録済み競技一覧</h2>
-        <p>システムで取り扱う競技の登録・編集・削除を行います。</p>
+        <p>システムで取り扱う競技の登録・削除を行います。</p>
     </div>
 </div>
 
@@ -47,7 +47,6 @@
                 </div>
 
                 <div class="sport-card-actions">
-                    <a href="{% url 'sport_edit' sport.pk %}" class="admin-edit-button">編集</a>
                     <a href="{% url 'sport_delete' sport.pk %}" class="admin-delete-button">削除</a>
                 </div>
             </article>

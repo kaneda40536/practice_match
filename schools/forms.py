@@ -55,11 +55,11 @@ class SportForm(RequiredMessageMixin, forms.ModelForm):
 
 
 class SchoolUpdateForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelForm):
-    """教育委員会が、学校の情報を編集するフォーム"""
+    """教育委員会が、学校の情報（学校名・所在地）を編集するフォーム"""
 
     class Meta:
         model = School
-        fields = ["name", "area", "address"]
+        fields = ["name", "address"]
         help_texts = {"address": ADDRESS_HELP}
 
     def clean_name(self):
@@ -67,6 +67,14 @@ class SchoolUpdateForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelFor
         if School.objects.filter(name=name).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("同じ名前の学校がすでに登録されています。")
         return name
+
+
+class SchoolCreateForm(SchoolUpdateForm):
+    """新しい学校（学校ID）を登録するフォーム（部活動アカウントの作成画面で使う）"""
+
+    class Meta(SchoolUpdateForm.Meta):
+        fields = ["name", "code", "address"]
+        error_messages = {"code": {"unique": "この学校IDはすでに使われています。"}}
 
 
 class SchoolAddressForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelForm):
@@ -78,32 +86,6 @@ class SchoolAddressForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelFo
         help_texts = {"address": ADDRESS_HELP}
 
 
-class ClubForm(RequiredMessageMixin, forms.ModelForm):
-    """顧問が、自校の部活動を追加するフォーム（学校は自動で入る）"""
-
-    class Meta:
-        model = Club
-        fields = ["sport", "gender"]
-
-    def __init__(self, *args, school, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.school = school
-        self.instance.school = school
-        # 競技の選択肢に、アイコンも表示する（例：⚽ サッカー）
-        self.fields["sport"].queryset = Sport.objects.order_by("name")
-        self.fields["sport"].label_from_instance = lambda s: f"{s.display_icon} {s.name}"
-
-    def clean(self):
-        cleaned = super().clean()
-        sport = cleaned.get("sport")
-        gender = cleaned.get("gender")
-        if sport and gender and Club.objects.filter(
-            school=self.school, sport=sport, gender=gender
-        ).exists():
-            raise forms.ValidationError("この競技・区分の部活動は、すでに登録されています。")
-        return cleaned
-
-
 def current_fiscal_year():
     """今の年度（4月はじまり）"""
     today = timezone.localdate()
@@ -111,25 +93,19 @@ def current_fiscal_year():
 
 
 class TournamentResultForm(RequiredMessageMixin, forms.ModelForm):
-    """大会成績の登録・変更フォーム（顧問の「大会成績管理」）"""
+    """大会成績の登録・変更フォーム（部活動の「大会成績管理」。部活動はログイン中の部活動）"""
 
     class Meta:
         model = TournamentResult
-        fields = ["club", "tournament_name", "fiscal_year", "level", "achievement"]
+        fields = ["tournament_name", "fiscal_year", "level", "achievement"]
         widgets = {
             "tournament_name": forms.TextInput(attrs={"placeholder": "例：地区新人大会"}),
             "fiscal_year": forms.NumberInput(attrs={"placeholder": "例：2026", "inputmode": "numeric"}),
         }
-        help_texts = {
-            "level": "地区大会の成績は、同じ地域の学校どうしでだけ比べます。",
-        }
 
-    def __init__(self, *args, school, **kwargs):
+    def __init__(self, *args, club, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["club"].queryset = (
-            Club.objects.filter(school=school).select_related("sport").order_by("sport__name", "gender"))
-        self.fields["club"].label_from_instance = lambda c: f"{c.sport.display_icon} {c.name}"
-        self.fields["club"].empty_label = "部活動を選択してください"
+        self.instance.club = club
         self.fields["level"].choices = [("", "大会規模を選択してください")] + list(TournamentResult.Level.choices)
         self.fields["achievement"].choices = (
             [("", "大会成績を選択してください")] + list(TournamentResult.Achievement.choices))

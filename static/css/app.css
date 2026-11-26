@@ -1354,3 +1354,26 @@ a.schedule-apply-button {
 .facility-sport-field {
     margin-top: 22px;
 }
+
+
+/* ---------- 部活動アカウント一覧（学校ごと） ---------- */
+
+/* 学校ごとの区切りを太い線にする */
+.school-account-table tbody.school-account-group + tbody.school-account-group {
+    border-top: 2px solid #d5dde7;
+}
+
+.school-account-table .school-account-school {
+    vertical-align: top;
+    font-weight: bold;
+    background: #f8fafc;
+}
+
+
+/* ---------- 学校情報一覧：部活動名 ---------- */
+
+.school-club-name {
+    display: inline-block;
+    margin: 2px 6px 2px 0;
+    white-space: nowrap;
+}

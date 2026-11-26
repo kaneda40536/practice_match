@@ -20,21 +20,15 @@
         <div class="opponent-heading-icon">⌕</div>
         <div>
             <h3>検索条件</h3>
-            <p>対戦相手を探したい自校の部活動と、希望する対戦レベル・地域を選択してください。</p>
+            <p>希望する対戦レベルを選択してください。</p>
         </div>
     </div>
 
-    {% if my_clubs %}
         <form method="get" class="opponent-search-form">
             <div class="opponent-select-field">
                 <label for="club">自校の部活動</label>
-                <select name="club" id="club" required>
-                    <option value="">部活動を選択してください</option>
-                    {% for c in my_clubs %}
-                        <option value="{{ c.pk }}"{% if selected_club and c.pk == selected_club.pk %} selected{% endif %}>
-                            {{ c.name }}
-                        </option>
-                    {% endfor %}
+                <select id="club" disabled>
+                    <option>{{ selected_club.name }}</option>
                 </select>
             </div>
 
@@ -47,25 +41,8 @@
                 </select>
             </div>
 
-            <div class="opponent-select-field">
-                <label for="area">地域</label>
-                <select name="area" id="area">
-                    <option value="">すべての地域</option>
-                    {% for a in areas %}
-                        <option value="{{ a.pk }}"{% if a.pk|stringformat:"s" == selected_area %} selected{% endif %}>{{ a.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
             <button type="submit" class="opponent-search-button">検索する</button>
         </form>
-    {% else %}
-        <div class="opponent-empty">
-            <p>部活動が登録されていません。</p>
-            <span>対戦相手を検索するには、先に部活動を登録してください。</span>
-            <a href="{% url 'my_club_list' %}" class="opponent-register-button">部活動を登録する</a>
-        </div>
-    {% endif %}
 </section>
 
 {% if selected_club %}
@@ -77,7 +54,7 @@
                 <h3>検索結果（{{ rows|length }}件{% if recommended_count %}・おすすめ {{ recommended_count }}件{% endif %}）</h3>
                 <p>
                     「{{ selected_level_label }}」に合う相手 → 未判定の相手 → その他 の順に、
-                    その中は共通の希望日がある相手・同じ地域・距離が近い順に並んでいます。
+                    その中は共通の希望日がある相手・距離が近い順に並んでいます。
                 </p>
             </div>
         </div>
@@ -116,7 +93,7 @@
                         <tr>
                             <th>学校名</th>
                             <th>部活動</th>
-                            <th>地域・距離</th>
+                            <th>距離</th>
                             <th>競技レベル</th>
                             <th>共通の希望日</th>
                             <th>詳細</th>
@@ -131,8 +108,7 @@
                                 </td>
                                 <td>{{ row.club.sport.display_icon }} {{ row.club.name }}</td>
                                 <td>
-                                    {{ row.school.area.name|default:"—" }}
-                                    <small class="opponent-sub">{% if row.distance is not None %}約 {{ row.distance }} km{% else %}距離不明{% endif %}</small>
+                                    {% if row.distance is not None %}約 {{ row.distance }} km{% else %}距離不明{% endif %}
                                 </td>
                                 <td>
                                     <span class="opponent-level {{ row.level.relation }}"
@@ -162,13 +138,13 @@
 
             <p class="help-text opponent-level-help">
                 競技レベルは、直近3年度の大会成績と、このシステムで登録した過去の対戦結果から推定しています。
-                地域が違う相手とは、地区大会の成績を比べていません。成績が未登録の学校は「未判定」になります。
+                成績が未登録の学校は「未判定」になります。
             </p>
         {% else %}
             <div class="opponent-empty-result">
                 <div class="opponent-empty-icon">⌕</div>
                 <h4>対戦相手が見つかりませんでした</h4>
-                <p>条件に合う対戦相手はまだ登録されていません。地域を「すべての地域」にして探してみてください。</p>
+                <p>同じ競技・区分の対戦相手はまだ登録されていません。</p>
             </div>
         {% endif %}
     </section>

@@ -4,11 +4,8 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.db.models import ProtectedError
 from django.shortcuts import redirect
 
-from django.shortcuts import get_object_or_404, render
-from django.views.generic import View
-
-from accounts.views import BoardRequiredMixin, TeacherRequiredMixin
-from .forms import FacilityForm, SchoolFacilityForm
+from accounts.views import BoardRequiredMixin
+from .forms import FacilityForm
 from .models import Facility
 
 
@@ -17,18 +14,8 @@ class FacilityListView(BoardRequiredMixin, ListView):
     context_object_name = "facilities"
 
     def get_queryset(self):
-        # 教育委員会が管理するのは公共の施設だけ（学校内の施設は、各学校が「会場管理」で管理する）
+        # 会場として管理するのは公共の施設だけ（学校の会場は登録しない）
         return Facility.objects.filter(school__isnull=True).prefetch_related("sports").order_by("name")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # 各学校が登録した学校内の会場（教育委員会は確認だけ）
-        context["school_facilities"] = (
-            Facility.objects.filter(school__isnull=False)
-            .select_related("school").prefetch_related("sports")
-            .order_by("school__name", "name")
-        )
-        return context
 
 
 class FacilityCreateView(BoardRequiredMixin, CreateView):
@@ -73,69 +60,3 @@ class FacilityDeleteView(BoardRequiredMixin, DeleteView):
             return redirect("facility_list")
         messages.success(self.request, f"「{name}」を削除しました。")
         return response
-
-
-# ---------- 会場管理（顧問：学校内の施設） ----------
-
-def school_facilities(school):
-    return Facility.objects.filter(school=school).prefetch_related("sports").order_by("name")
-
-
-class SchoolFacilityListView(TeacherRequiredMixin, View):
-    """自校の施設の一覧と、登録フォーム"""
-    template_name = "facilities/school_facility_list.html"
-
-    def show(self, form):
-        return render(self.request, self.template_name, {
-            "form": form,
-            "facilities": school_facilities(self.request.user.school),
-        })
-
-    def get(self, request):
-        return self.show(SchoolFacilityForm(school=request.user.school))
-
-    def post(self, request):
-        form = SchoolFacilityForm(request.POST, school=request.user.school)
-        if not form.is_valid():
-            return self.show(form)
-        facility = form.save()
-        messages.success(request, f"会場「{facility.name}」を登録しました。")
-        return redirect("my_facility_list")
-
-
-class SchoolFacilityUpdateView(TeacherRequiredMixin, View):
-    template_name = "facilities/school_facility_form.html"
-
-    def get_facility(self):
-        return get_object_or_404(Facility, pk=self.kwargs["pk"], school=self.request.user.school)
-
-    def show(self, form, facility):
-        return render(self.request, self.template_name, {"form": form, "facility": facility})
-
-    def get(self, request, pk):
-        facility = self.get_facility()
-        return self.show(SchoolFacilityForm(instance=facility, school=request.user.school), facility)
-
-    def post(self, request, pk):
-        facility = self.get_facility()
-        form = SchoolFacilityForm(request.POST, instance=facility, school=request.user.school)
-        if not form.is_valid():
-            return self.show(form, facility)
-        form.save()
-        messages.success(request, f"会場「{facility.name}」を変更しました。")
-        return redirect("my_facility_list")
-
-
-class SchoolFacilityDeleteView(TeacherRequiredMixin, View):
-    """自校の施設を削除する（一覧の削除ボタンから。練習試合の会場になっていれば削除できない）"""
-
-    def post(self, request, pk):
-        facility = get_object_or_404(Facility, pk=pk, school=request.user.school)
-        name = facility.name
-        try:
-            facility.delete()
-        except ProtectedError:
-            messages.error(request, f"会場「{name}」は、練習試合の会場になっているため削除できません。")
-        else:
-            messages.success(request, f"会場「{name}」を削除しました。")
-        return redirect("my_facility_list")

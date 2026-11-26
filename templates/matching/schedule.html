@@ -20,25 +20,15 @@
         <div class="schedule-heading-icon">01</div>
         <div>
             <h3>対戦相手の選択</h3>
-            <p>自校の部活動と、相手校の部活動を選択してください。</p>
+            <p>相手校の部活動を選択してください。</p>
         </div>
     </div>
 
-    {% if not my_clubs %}
-        <div class="schedule-notice">
-            部活動が登録されていません。<a href="{% url 'my_club_list' %}">部活動管理</a>から登録してください。
-        </div>
-    {% else %}
         <form method="get" class="schedule-select-form">
             <div class="schedule-field">
                 <label for="club">自校の部活動</label>
-                <select name="club" id="club" required onchange="this.form.submit()">
-                    <option value="">部活動を選択してください</option>
-                    {% for c in my_clubs %}
-                        <option value="{{ c.pk }}"{% if selected_club and selected_club.pk == c.pk %} selected{% endif %}>
-                            {{ c.name }}
-                        </option>
-                    {% endfor %}
+                <select id="club" disabled>
+                    <option>{{ selected_club.name }}</option>
                 </select>
             </div>
 
@@ -49,7 +39,7 @@
                         <option value="">相手校を選択してください</option>
                         {% for o in opponent_clubs %}
                             <option value="{{ o.pk }}"{% if selected_opponent and selected_opponent.pk == o.pk %} selected{% endif %}>
-                                {{ o.school.name }}（{{ o.school.area.name|default:"地域未登録" }}）
+                                {{ o.school.name }}
                             </option>
                         {% endfor %}
                     </select>
@@ -73,7 +63,6 @@
                 <div class="schedule-notice">同じ競技・区分の、相手校の部活動が登録されていません。</div>
             {% endif %}
         {% endif %}
-    {% endif %}
 </section>
 
 <!-- 02：共通候補日 -->

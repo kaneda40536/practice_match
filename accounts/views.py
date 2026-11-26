@@ -3,13 +3,14 @@ from django.contrib.auth import logout
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.urls import reverse_lazy
-from django.views.generic import FormView, ListView, TemplateView, View
+from django.views.generic import FormView, TemplateView, View
 
-from .forms import CustomLoginForm, SchoolAccountCreateForm, SchoolPasswordForm
+from .forms import BoardLoginForm, ClubAccountCreateForm, ClubLoginForm, ClubPasswordForm
 from .models import User
 from schools.models import Club, School
 from facilities.models import Facility
@@ -20,32 +21,54 @@ def is_board(user):
     return user.is_superuser or user.role == User.Role.BOARD
 
 
+def is_club_account(user):
+    """部活動が設定されている、部活動（顧問）のアカウントかどうか"""
+    return user.role == User.Role.TEACHER and user.club_id is not None
+
+
 # ---------- ログイン・ログアウト ----------
 
-class CustomLoginView(LoginView):
-    form_class = CustomLoginForm
+class ClubLoginView(LoginView):
+    """部活動アカウントのログイン（学校ID＋部活動ID＋パスワード）"""
+    form_class = ClubLoginForm
     template_name = 'login.html'
     redirect_authenticated_user = True
+    board_login = False
+    # 未入力のときに伝える項目（フォームの項目名 → 画面の表示名）
+    labels = {"school_code": "学校ID", "club_code": "部活動ID", "password": "パスワード"}
 
     def get_success_url(self):
-        if is_board(self.request.user):
-            return reverse_lazy('board_home')
-        return reverse_lazy('teacher_home')
+        url = self.get_redirect_url()
+        if url:
+            return url
+        return home_url_for(self.request.user) or reverse_lazy('login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["board_login"] = self.board_login
+        return context
 
     def form_invalid(self, form):
         # 未入力の項目があれば、どれが未入力かを伝える（ブラウザのチェックは使わない）
-        labels = {"username": "学校ID", "password": "パスワード"}
-        missing = [label for name, label in labels.items()
+        missing = [label for name, label in self.labels.items()
                    if not form.data.get(name, "").strip()]
         if missing:
-            error_msg = "と".join(missing) + "を入力してください。"
+            joiner = "と" if len(missing) <= 2 else "・"
+            error_msg = joiner.join(missing) + "を入力してください。"
         elif form.non_field_errors():
             error_msg = form.non_field_errors()[0]
         else:
-            error_msg = "学校IDとパスワードを入力してください。"
+            error_msg = "・".join(self.labels.values()) + "を入力してください。"
         return self.render_to_response(
             self.get_context_data(form=form, error=error_msg)
         )
+
+
+class BoardLoginView(ClubLoginView):
+    """教育委員会（管理者）のログイン（管理者ID＋パスワード）"""
+    form_class = BoardLoginForm
+    board_login = True
+    labels = {"username": "管理者ID", "password": "パスワード"}
 
 
 def custom_logout_view(request):
@@ -56,10 +79,10 @@ def custom_logout_view(request):
 # ---------- 共通の部品（ミックスイン） ----------
 
 def home_url_for(user):
-    """そのユーザーのホーム画面。顧問なのに学校が設定されていなければ None"""
+    """そのユーザーのホーム画面。顧問なのに部活動が設定されていなければ None"""
     if is_board(user):
         return reverse_lazy("board_home")
-    if user.role == User.Role.TEACHER and user.school_id is not None:
+    if is_club_account(user):
         return reverse_lazy("teacher_home")
     return None
 
@@ -79,11 +102,11 @@ class RoleRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         home = home_url_for(user)
         if home is None:
             logout(self.request)
-            messages.error(self.request, "このアカウントには学校が設定されていません。教育委員会にお問い合わせください。")
+            messages.error(self.request, "このアカウントには部活動が設定されていません。教育委員会にお問い合わせください。")
             return redirect("login")
         messages.warning(
             self.request,
-            f"この画面は、いまログインしている「{user.username}」では開けないため、ホームに移動しました。"
+            f"この画面は、いまログインしている「{user.display_name}」では開けないため、ホームに移動しました。"
             "同じブラウザの別のタブで、別のアカウントにログインしていませんか？",
         )
         return redirect(home)
@@ -95,10 +118,9 @@ class BoardRequiredMixin(RoleRequiredMixin):
         return is_board(self.request.user)
 
 class TeacherRequiredMixin(RoleRequiredMixin):
-    """学校が設定されている顧問だけが見られる画面に付ける"""
+    """部活動のアカウントだけが見られる画面に付ける"""
     def test_func(self):
-        user = self.request.user
-        return user.role == User.Role.TEACHER and user.school_id is not None
+        return is_club_account(self.request.user)
 
 # ---------- ホーム画面（トップ） ----------
 # メニューカードは accounts/menus.py の内容を context_processors.navigation が渡す
@@ -109,9 +131,9 @@ class BoardHomeView(BoardRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["stats"] = [
-            {"label": "学校アカウント", "icon": "▣", "color": "blue",
-             "value": User.objects.filter(role=User.Role.TEACHER).count(),
-             "unit": "件", "note": "登録されている学校アカウント"},
+            {"label": "部活動アカウント", "icon": "▣", "color": "blue",
+             "value": User.objects.filter(role=User.Role.TEACHER, club__isnull=False).count(),
+             "unit": "件", "note": "登録されている部活動アカウント"},
             {"label": "登録学校数", "icon": "▤", "color": "green",
              "value": School.objects.count(),
              "unit": "校", "note": "学校情報が登録されている学校"},
@@ -130,65 +152,82 @@ class TeacherHomeView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        school = self.request.user.school
+        club = self.request.user.club
         today = timezone.localdate()
         pending = PracticeMatch.Status.PENDING
         context["stats"] = [
             {"label": "届いた申し込み", "icon": "↓", "color": "orange",
-             "value": PracticeMatch.objects.filter(
-                 opponent_club__school=school, status=pending).count(),
+             "value": PracticeMatch.objects.filter(opponent_club=club, status=pending).count(),
              "unit": "件", "note": "返事を待っている申し込み"},
             {"label": "申し込み中", "icon": "↑", "color": "blue",
-             "value": PracticeMatch.objects.filter(
-                 applicant_club__school=school, status=pending).count(),
+             "value": PracticeMatch.objects.filter(applicant_club=club, status=pending).count(),
              "unit": "件", "note": "相手校の返事を待っている試合"},
             {"label": "予定の試合", "icon": "✓", "color": "green",
              "value": PracticeMatch.objects.filter(
-                 Q(applicant_club__school=school) | Q(opponent_club__school=school),
+                 Q(applicant_club=club) | Q(opponent_club=club),
                  status=PracticeMatch.Status.CONFIRMED, date__gte=today).count(),
              "unit": "件", "note": "今日以降に確定している試合"},
             {"label": "未読メッセージ", "icon": "✉", "color": "purple",
-             "value": Message.unread_for(school).count(),
+             "value": Message.unread_for(club).count(),
              "unit": "件", "note": "まだ読んでいない他校からのメッセージ"},
         ]
         return context
 
 
-# ---------- 学校アカウント管理（教育委員会） ----------
+# ---------- 部活動アカウント管理（教育委員会） ----------
 
-class SchoolAccountListView(BoardRequiredMixin, ListView):
+def club_accounts():
+    return User.objects.filter(role=User.Role.TEACHER, club__isnull=False)
+
+
+class SchoolAccountListView(BoardRequiredMixin, TemplateView):
+    """部活動アカウントの一覧。学校名・学校ID・部活動名・部活動IDを、学校ごとにまとめて表示する"""
     template_name = "school_accounts/account_list.html"
-    context_object_name = "accounts"
 
-    def get_queryset(self):
-        return (
-            User.objects.filter(role=User.Role.TEACHER)
-            .select_related("school__area")
-            .order_by("school__name", "username")
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        clubs_with_account = (
+            Club.objects.filter(account__role=User.Role.TEACHER)
+            .select_related("account", "sport")
+            .order_by("sport__name", "gender")
         )
+        context["schools"] = School.objects.order_by("name").prefetch_related(
+            Prefetch("club_set", queryset=clubs_with_account, to_attr="account_clubs"))
+        context["account_count"] = club_accounts().count()
+        return context
 
 
 class SchoolAccountCreateView(BoardRequiredMixin, FormView):
-    form_class = SchoolAccountCreateForm
+    form_class = ClubAccountCreateForm
     template_name = "school_accounts/account_form.html"
     success_url = reverse_lazy("school_account_list")
 
+    def get_initial(self):
+        # 学校一覧の「部活動アカウントを追加」から来たときは、その学校を選んでおく
+        initial = super().get_initial()
+        school = self.request.GET.get("school", "")
+        if school.isdigit():
+            initial["school"] = school
+        return initial
+
     def form_valid(self, form):
         user = form.save()
+        club = user.club
         messages.success(
             self.request,
-            f"「{user.school.name}」のアカウント（学校ID：{user.username}）を作成しました。",
+            f"「{user.display_name}」のアカウント（学校ID：{club.school.code}／部活動ID：{club.code}）を作成しました。",
         )
         return super().form_valid(form)
 
 
 class SchoolAccountPasswordView(BoardRequiredMixin, FormView):
-    form_class = SchoolPasswordForm
+    form_class = ClubPasswordForm
     template_name = "school_accounts/password_form.html"
     success_url = reverse_lazy("school_account_list")
 
     def get_target(self):
-        return get_object_or_404(User, pk=self.kwargs["pk"], role=User.Role.TEACHER)
+        return get_object_or_404(
+            club_accounts().select_related("club__school", "club__sport"), pk=self.kwargs["pk"])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -208,11 +247,41 @@ class SchoolAccountPasswordView(BoardRequiredMixin, FormView):
 
 class SchoolAccountToggleView(BoardRequiredMixin, View):
     def post(self, request, pk):
-        user = get_object_or_404(User, pk=pk, role=User.Role.TEACHER)
+        user = get_object_or_404(club_accounts(), pk=pk)
         user.is_active = not user.is_active
         user.save(update_fields=["is_active"])
         state = "有効" if user.is_active else "無効"
-        messages.success(request, f"学校ID「{user.username}」を{state}にしました。")
+        messages.success(request, f"「{user.display_name}」のアカウントを{state}にしました。")
+        return redirect("school_account_list")
+
+
+class SchoolAccountDeleteView(BoardRequiredMixin, TemplateView):
+    """部活動アカウントを、部活動ごと削除する（確認画面のあと）。
+    部活動の希望日・練習試合の申し込み・試合結果・メッセージ・大会成績も一緒に消える"""
+    template_name = "school_accounts/account_confirm_delete.html"
+
+    def get_target(self):
+        return get_object_or_404(
+            club_accounts().select_related("club__school", "club__sport"), pk=self.kwargs["pk"])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        target = self.get_target()
+        club = target.club
+        context.update({
+            "target": target,
+            "match_count": PracticeMatch.objects.filter(
+                Q(applicant_club=club) | Q(opponent_club=club)).count(),
+            "result_count": club.tournament_results.count(),
+        })
+        return context
+
+    def post(self, request, pk):
+        target = self.get_target()
+        name = target.display_name
+        with transaction.atomic():
+            target.club.delete()      # アカウントも、部活動と一緒に削除される
+        messages.success(request, f"「{name}」のアカウントを削除しました。")
         return redirect("school_account_list")
 
 # ---------- 送信の確認（CSRF）に失敗したとき ----------

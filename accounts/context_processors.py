@@ -24,15 +24,15 @@ def build_menu(sections, menu, current_url_name=None, badges=None):
     return result
 
 
-def teacher_badges(school):
-    """顧問のサイドバーに出す件数（未読メッセージ、返事待ちの申し込み）"""
+def teacher_badges(club):
+    """部活動のサイドバーに出す件数（未読メッセージ、返事待ちの申し込み）"""
     # 循環 import を避けるため、ここで読み込む
     from matching.models import Message, PracticeMatch
 
     return {
-        "unread_messages": Message.unread_for(school).count(),
+        "unread_messages": Message.unread_for(club).count(),
         "pending_received": PracticeMatch.objects.filter(
-            opponent_club__school=school, status=PracticeMatch.Status.PENDING
+            opponent_club=club, status=PracticeMatch.Status.PENDING
         ).count(),
     }
 
@@ -57,8 +57,8 @@ def navigation(request):
             "nav_user_name": "管理者",
         }
 
-    school = user.school
-    badges = teacher_badges(school) if school else {}
+    club = user.club
+    badges = teacher_badges(club) if club else {}
     return {
         "nav_sections": build_menu(TEACHER_SECTIONS, TEACHER_MENU, current, badges),
         "nav_home_url": reverse("teacher_home"),
@@ -66,7 +66,7 @@ def navigation(request):
         "nav_brand_icon": "S",
         "nav_brand_label": "SCHOOL SYSTEM",
         "nav_portal_label": "SCHOOL PORTAL",
-        "nav_user_name": school.name if school else user.username,
+        "nav_user_name": user.display_name,
         # 画面の自動更新で問い合わせる先（matching.views.live_updates）
-        "nav_live_url": reverse("live_updates") if school else None,
+        "nav_live_url": reverse("live_updates") if club else None,
     }

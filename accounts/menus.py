@@ -17,16 +17,16 @@ BOARD_SECTIONS = [
 ]
 
 BOARD_MENU = [
-    {"title": "学校アカウント管理", "description": "学校アカウントの作成・パスワード再設定・利用状態の管理",
+    {"title": "部活動アカウント管理", "description": "学校・部活動アカウントの作成と、パスワード再設定・利用停止・削除",
      "url_name": "school_account_list", "section": "main", "icon": "▣", "color": "blue",
-     "match_names": ["school_account_list", "school_account_add",
-                     "school_account_password", "school_account_toggle"]},
-    {"title": "学校情報管理", "description": "各学校の基本情報を確認・管理",
+     "match_names": ["school_account_list", "school_account_add", "school_account_password",
+                     "school_account_toggle", "school_account_delete"]},
+    {"title": "学校情報管理", "description": "各学校の基本情報（学校名・所在地）の確認・編集",
      "url_name": "school_list", "section": "main", "icon": "▤", "color": "green",
-     "match_names": ["school_list", "school_edit", "school_delete"]},
+     "match_names": ["school_list", "school_edit"]},
     {"title": "競技管理", "description": "システムで使用する競技の種類を管理",
      "url_name": "sport_list", "section": "main", "icon": "⚽", "color": "orange",
-     "match_names": ["sport_list", "sport_add", "sport_edit", "sport_delete"]},
+     "match_names": ["sport_list", "sport_add", "sport_delete"]},
     {"title": "部活動一覧", "description": "各学校が登録した部活動を確認",
      "url_name": "club_list", "section": "main", "icon": "▦", "color": "purple",
      "match_names": ["club_list"]},
@@ -48,16 +48,10 @@ TEACHER_SECTIONS = [
 ]
 
 TEACHER_MENU = [
-    {"title": "学校情報管理", "description": "自校の基本情報を確認",
+    {"title": "学校情報管理", "description": "自校と自分の部活動の基本情報を確認",
      "url_name": "my_school", "section": "school", "icon": "▣", "color": "blue",
      "match_names": ["my_school"]},
-    {"title": "部活動管理", "description": "自校の部活動を登録・確認",
-     "url_name": "my_club_list", "section": "school", "icon": "▤", "color": "green",
-     "match_names": ["my_club_list", "my_club_add", "my_club_delete"]},
-    {"title": "会場管理", "description": "自校の施設を登録・編集・確認",
-     "url_name": "my_facility_list", "section": "school", "icon": "▦", "color": "orange",
-     "match_names": ["my_facility_list", "my_facility_edit"]},
-    {"title": "大会成績管理", "description": "自校の過去の大会成績を登録・変更・削除",
+    {"title": "大会成績管理", "description": "自分の部活動の過去の大会成績を登録・変更・削除",
      "url_name": "tournament_results", "section": "school", "icon": "🏆", "color": "orange",
      "match_names": ["tournament_results", "tournament_result_edit"]},
 

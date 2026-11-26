@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}部活動アカウントの削除｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}部活動アカウント管理{% endblock %}
+
+{% block content %}
+
+<div class="account-form-heading">
+    <h2>部活動アカウントの削除</h2>
+    <p>{{ target.display_name }}（学校ID：{{ target.club.school.code }}／部活動ID：{{ target.club.code }}）のアカウントを削除します。</p>
+</div>
+
+<div class="account-form-card">
+    <p class="account-form-error">削除すると元に戻せません。この部活動の次のデータも一緒に削除されます。</p>
+    <ul>
+        <li>練習試合の申し込み・試合（相手校とのものを含む）：{{ match_count }}件（試合結果・メッセージを含む）</li>
+        <li>大会成績：{{ result_count }}件</li>
+        <li>希望日</li>
+    </ul>
+    <p class="account-form-note">ログインだけを止めたいときは、削除ではなく「利用停止」にしてください。</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="account-form-actions">
+            <a href="{% url 'school_account_list' %}" class="account-back-button">キャンセル</a>
+            <button type="submit" class="admin-stop-button">削除する</button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

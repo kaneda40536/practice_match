@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
-from schools.models import Area, Club, School, Sport
+from schools.models import Club, School, Sport
 from .models import Availability, CandidateDate, Conversation, MatchResult, Message, PracticeMatch
 
 
@@ -14,17 +14,19 @@ class MatchingFeatureTestBase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        area = Area.objects.create(name="札幌地区")
         cls.sport = Sport.objects.create(name="サッカー", icon="⚽")
-        cls.school_a = School.objects.create(name="A高校", area=area, address="札幌市", latitude=43.0, longitude=141.0)
-        cls.school_b = School.objects.create(name="B高校", area=area, address="札幌市", latitude=43.1, longitude=141.1)
-        cls.school_c = School.objects.create(name="C高校", area=area, address="札幌市", latitude=43.2, longitude=141.2)
-        cls.user_a = User.objects.create_user(username="a", password="x", role="teacher", school=cls.school_a)
-        cls.user_b = User.objects.create_user(username="b", password="x", role="teacher", school=cls.school_b)
-        cls.user_c = User.objects.create_user(username="c", password="x", role="teacher", school=cls.school_c)
-        cls.club_a = Club.objects.create(school=cls.school_a, sport=cls.sport, gender="male")
-        cls.club_b = Club.objects.create(school=cls.school_b, sport=cls.sport, gender="male")
-        cls.club_c = Club.objects.create(school=cls.school_c, sport=cls.sport, gender="male")
+        cls.school_a = School.objects.create(name="A高校", code="a", address="札幌市", latitude=43.0, longitude=141.0)
+        cls.school_b = School.objects.create(name="B高校", code="b", address="札幌市", latitude=43.1, longitude=141.1)
+        cls.school_c = School.objects.create(name="C高校", code="c", address="札幌市", latitude=43.2, longitude=141.2)
+        cls.club_a = Club.objects.create(school=cls.school_a, sport=cls.sport, gender="male", code="soccer")
+        cls.club_b = Club.objects.create(school=cls.school_b, sport=cls.sport, gender="male", code="soccer")
+        cls.club_c = Club.objects.create(school=cls.school_c, sport=cls.sport, gender="male", code="soccer")
+        cls.user_a = User.objects.create_user(username="a", password="x", role="teacher", club=cls.club_a)
+        cls.user_b = User.objects.create_user(username="b", password="x", role="teacher", club=cls.club_b)
+        cls.user_c = User.objects.create_user(username="c", password="x", role="teacher", club=cls.club_c)
+        # A高校の、別の部活動（女子サッカー部）。A高校の男子サッカー部の試合・メッセージは見られない
+        cls.club_a2 = Club.objects.create(school=cls.school_a, sport=cls.sport, gender="female", code="soccer_f")
+        cls.user_a2 = User.objects.create_user(username="a2", password="x", role="teacher", club=cls.club_a2)
 
         cls.today = timezone.localdate()
         cls.past_match = PracticeMatch.objects.create(
@@ -162,7 +164,7 @@ class ProposalTest(MatchingFeatureTestBase):
 
     def test_only_opponent_can_respond(self):
         match, c1, c2 = self.make_proposal()
-        for user in (self.user_a, self.user_c):
+        for user in (self.user_a, self.user_c, self.user_a2):
             self.client.force_login(user)
             response = self.client.post(reverse("match_respond", args=[match.pk]),
                                         {"action": "approve", "candidate_date_id": c1.pk})
@@ -246,9 +248,12 @@ class ResultTest(MatchingFeatureTestBase):
 
     def test_other_school_cannot_touch_result(self):
         result = MatchResult.objects.create(match=self.past_match, applicant_score=1)
-        self.client.force_login(self.user_c)
-        self.assertEqual(self.client.get(reverse("match_result_edit", args=[self.past_match.pk])).status_code, 404)
-        self.assertEqual(self.client.post(reverse("match_result_delete", args=[result.pk])).status_code, 404)
+        # 他校の部活動も、同じ学校の別の部活動も、触れない
+        for user in (self.user_c, self.user_a2):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(reverse("match_result_edit", args=[self.past_match.pk])).status_code, 404)
+            self.assertEqual(self.client.post(reverse("match_result_delete", args=[result.pk])).status_code, 404)
+            self.assertEqual(self.client.get(reverse("planned_matches")).context["past"], [])
 
 
 class ConversationTest(MatchingFeatureTestBase):
@@ -256,7 +261,7 @@ class ConversationTest(MatchingFeatureTestBase):
 
     def test_start_free_conversation_and_reuse_it(self):
         self.client.force_login(self.user_a)
-        data = {"my_club": self.club_a.pk, "opponent_club": self.club_b.pk}
+        data = {"opponent_club": self.club_b.pk}
         response = self.client.post(reverse("message_start"), data)
         conversation = Conversation.objects.get()
         self.assertRedirects(response, reverse("message_room", args=[conversation.pk]))
@@ -264,13 +269,14 @@ class ConversationTest(MatchingFeatureTestBase):
 
         # 相手側から同じ組み合わせで始めても、同じ会話が開く
         self.client.force_login(self.user_b)
-        self.client.post(reverse("message_start"), {"my_club": self.club_b.pk, "opponent_club": self.club_a.pk})
+        self.client.post(reverse("message_start"), {"opponent_club": self.club_a.pk})
         self.assertEqual(Conversation.objects.count(), 1)
+        conversation = Conversation.objects.get()
+        self.assertEqual((conversation.club_a, conversation.club_b), (self.club_a, self.club_b))
 
-    def test_cannot_start_with_other_schools_club(self):
+    def test_cannot_start_with_own_schools_club(self):
         self.client.force_login(self.user_a)
-        response = self.client.post(reverse("message_start"),
-                                    {"my_club": self.club_b.pk, "opponent_club": self.club_c.pk})
+        response = self.client.post(reverse("message_start"), {"opponent_club": self.club_a2.pk})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Conversation.objects.exists())
 
@@ -292,8 +298,9 @@ class ConversationTest(MatchingFeatureTestBase):
 
     def test_outsider_cannot_open_conversation(self):
         conversation = Conversation.free_between(self.club_a, self.club_b)
-        self.client.force_login(self.user_c)
-        self.assertEqual(self.client.get(reverse("message_room", args=[conversation.pk])).status_code, 404)
+        for user in (self.user_c, self.user_a2):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(reverse("message_room", args=[conversation.pk])).status_code, 404)
 
     def test_blank_message_is_rejected(self):
         conversation = Conversation.free_between(self.club_a, self.club_b)
@@ -305,7 +312,6 @@ class ConversationTest(MatchingFeatureTestBase):
     def test_start_without_clubs_shows_messages(self):
         self.client.force_login(self.user_a)
         response = self.client.post(reverse("message_start"), {})
-        self.assertContains(response, "自校の部活動を選択してください。")
         self.assertContains(response, "相手校の部活動を選択してください。")
 
     def test_match_conversation_link_creates_conversation_for_old_match(self):
@@ -337,10 +343,15 @@ class ScheduleTest(MatchingFeatureTestBase):
         self.assertEqual(response.context["apply_all_url"],
                          reverse("match_request", args=[self.club_a.pk, self.club_b.pk]) + f"?date={self.day2}")
 
-    def test_other_schools_club_cannot_be_selected(self):
+    def test_other_club_cannot_be_selected(self):
+        # 部活動の指定は無視され、いつもログイン中の部活動になる
         self.client.force_login(self.user_a)
         response = self.client.get(reverse("schedule") + f"?club={self.club_b.pk}")
-        self.assertIsNone(response.context["selected_club"])
+        self.assertEqual(response.context["selected_club"], self.club_a)
+        # ほかの部活動として申し込むことはできない
+        self.client.force_login(self.user_a2)
+        response = self.client.get(reverse("match_request", args=[self.club_a.pk, self.club_b.pk]))
+        self.assertEqual(response.status_code, 404)
 
 
 class SportIconTest(TestCase):

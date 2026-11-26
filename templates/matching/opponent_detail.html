@@ -24,12 +24,8 @@
         <p>{{ opponent.sport.display_icon }} {{ opponent.name }}</p>
     </div>
     <div class="detail-list">
-        <p><strong>所属地域：</strong>{{ opponent.school.area.name|default:"未登録" }}</p>
         <p><strong>所在地：</strong>{{ opponent.school.address|default:"未登録" }}</p>
         <p><strong>自校からの距離：</strong>{% if row.distance is not None %}約 {{ row.distance }} km（直線）{% else %}不明{% endif %}</p>
-        <p><strong>学校内の会場：</strong>
-            {% for facility in school_facilities %}{{ facility.name }}{% if not forloop.last %}、{% endif %}{% empty %}未登録{% endfor %}
-        </p>
     </div>
 </section>
 

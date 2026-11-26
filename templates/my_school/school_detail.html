@@ -9,7 +9,7 @@
 <section class="school-intro">
     <span class="english-label">SCHOOL INFORMATION</span>
     <h2>学校情報管理</h2>
-    <p>自校の基本情報を確認できます。</p>
+    <p>自校と、自分の部活動の基本情報を確認できます。</p>
 </section>
 
 <section class="profile-section">
@@ -28,11 +28,6 @@
         </div>
 
         <div class="info-item">
-            <span class="info-item-label">所属地域</span>
-            <span class="info-item-value">{{ school.area.name|default:"—" }}</span>
-        </div>
-
-        <div class="info-item">
             <span class="info-item-label">所在地</span>
             <span class="info-item-value">{{ school.address|default:"—" }}</span>
             {% if school.address %}
@@ -44,6 +39,33 @@
     </div>
 
     <p class="notice-box">学校情報を変更したいときは、教育委員会にご連絡ください。</p>
+</section>
+
+<section class="profile-section">
+    <div class="profile-section-heading">
+        <div class="profile-heading-icon">▤</div>
+        <div>
+            <h3>部活動の情報</h3>
+            <p>ログインしている部活動の情報です。ログインには学校IDと部活動IDを使います。</p>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <span class="info-item-label">部活動名</span>
+            <span class="info-item-value">{{ user.club.sport.display_icon }} {{ user.club.name }}</span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-item-label">学校ID</span>
+            <span class="info-item-value">{{ school.code }}</span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-item-label">部活動ID</span>
+            <span class="info-item-value">{{ user.club.code }}</span>
+        </div>
+    </div>
 </section>
 
 <div class="profile-actions">

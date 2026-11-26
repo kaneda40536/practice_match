@@ -62,27 +62,12 @@
     <div class="messages-section-heading">
         <div>
             <h3>新しいメッセージを開始</h3>
-            <p>連絡に使用する自校と相手校の部活動を選択してください。練習試合の申し込みについての会話は、各申し込みの画面から開けます。</p>
+            <p>{{ my_club.name }}から連絡する、相手校の部活動を選択してください。練習試合の申し込みについての会話は、各申し込みの画面から開けます。</p>
         </div>
     </div>
 
-    {% if not start_form.fields.my_club.queryset.exists %}
-        <div class="messages-empty">
-            <p>部活動が登録されていません。<a href="{% url 'my_club_list' %}">部活動管理</a>から登録してください。</p>
-        </div>
-    {% else %}
         <form method="post" novalidate action="{% url 'message_start' %}" class="message-start-form">
             {% csrf_token %}
-
-            <div class="messages-school-item">
-                <div class="messages-school-info">
-                    <div>
-                        <label for="{{ start_form.my_club.id_for_label }}"><strong>{{ start_form.my_club.label }}</strong></label>
-                        {{ start_form.my_club }}
-                        {% for error in start_form.my_club.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
-                    </div>
-                </div>
-            </div>
 
             <div class="messages-school-item">
                 <div class="messages-school-info">
@@ -96,7 +81,6 @@
 
             <button type="submit" class="messages-start-button">メッセージを開始</button>
         </form>
-    {% endif %}
 </section>
 
 <div class="messages-back">

@@ -11,7 +11,7 @@
         <p class="result-management-eyebrow">TOURNAMENT RESULTS</p>
         <h2>大会成績管理</h2>
         <p>
-            自校の部活動の過去の大会成績を登録・確認できます。登録は任意です。<br>
+            {{ user.club.name }}の過去の大会成績を登録・確認できます。登録は任意です。<br>
             登録した成績は、対戦相手検索で「競技レベル」を判定するために使われます（直近3年度分）。
         </p>
     </div>
@@ -26,15 +26,7 @@
         </div>
     </div>
 
-    {% if has_clubs %}
-        {% include "tournaments/_result_fields.html" with form=form button_label="大会成績を登録" %}
-    {% else %}
-        <div class="result-management-empty">
-            <div class="result-management-empty-icon">▤</div>
-            <h4>部活動が登録されていません</h4>
-            <p>大会成績を登録するには、先に<a href="{% url 'my_club_list' %}">部活動を登録</a>してください。</p>
-        </div>
-    {% endif %}
+    {% include "tournaments/_result_fields.html" with form=form button_label="大会成績を登録" %}
 </section>
 
 <!-- 登録済み大会成績一覧 -->

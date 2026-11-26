@@ -8,11 +8,10 @@ from django.views.decorators.cache import never_cache
 from django.views.generic import CreateView, ListView, TemplateView, View
 
 from accounts.context_processors import teacher_badges
-from accounts.models import User
-from accounts.views import TeacherRequiredMixin
+from accounts.views import TeacherRequiredMixin, is_club_account
 from schools.distance import distance_km
 from schools.forms import ClubLevelForm
-from schools.models import Area, Club
+from schools.models import Club
 from .forms import (
     MAX_CANDIDATES, AvailabilityForm, ConversationStartForm, MatchRequestForm,
     MatchResultForm, MessageForm, missing_host_dates,
@@ -24,6 +23,24 @@ from .models import (
     Availability, CandidateDate, Conversation, MatchResult, Message, PracticeMatch,
 )
 
+def own_club(request, club_pk):
+    """URL の部活動の番号が、ログイン中の部活動のものなら、その部活動を返す（違えば 404）"""
+    if club_pk != request.user.club_id:
+        raise Http404
+    return get_object_or_404(Club.objects.select_related("school", "sport"), pk=club_pk)
+
+
+def club_matches(club):
+    """自分の部活動が申込側・相手側のどちらかになっている練習試合"""
+    return PracticeMatch.objects.filter(
+        Q(applicant_club=club) | Q(opponent_club=club)
+    ).select_related(
+        "applicant_club__school", "applicant_club__sport",
+        "opponent_club__school", "opponent_club__sport",
+        "facility", "result",
+    )
+
+
 # ---------- 希望日の登録 ----------
 
 class ClubAvailabilityView(TeacherRequiredMixin, CreateView):
@@ -32,10 +49,8 @@ class ClubAvailabilityView(TeacherRequiredMixin, CreateView):
     template_name = "matching/availability.html"
 
     def get_club(self):
-        # 自校の部活動だけが対象。他校の部活動の番号を指定すると、見つからない扱いになる
-        return get_object_or_404(
-            Club, pk=self.kwargs["club_pk"], school=self.request.user.school
-        )
+        # ログイン中の部活動だけが対象。ほかの部活動の番号を指定すると、見つからない扱いになる
+        return own_club(self.request, self.kwargs["club_pk"])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -64,9 +79,7 @@ class AvailabilityDeleteView(TeacherRequiredMixin, View):
     """希望日を1日削除する（確認画面は出さず、ボタンで直接削除）"""
 
     def post(self, request, pk):
-        availability = get_object_or_404(
-            Availability, pk=pk, club__school=request.user.school
-        )
+        availability = get_object_or_404(Availability, pk=pk, club=request.user.club)
         club_pk = availability.club_id
         availability.delete()
         messages.success(request, "希望日を削除しました。")
@@ -76,7 +89,7 @@ class AvailabilityDeleteView(TeacherRequiredMixin, View):
 # ---------- 対戦相手検索 ----------
 
 class OpponentSearchView(TeacherRequiredMixin, TemplateView):
-    """対戦相手検索。希望する対戦レベル・共通の希望日・地域・距離から、おすすめ順に並べる"""
+    """対戦相手検索。希望する対戦レベル・共通の希望日・距離から、おすすめ順に並べる"""
     template_name = "matching/opponent_search.html"
 
     @staticmethod
@@ -92,25 +105,9 @@ class OpponentSearchView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        school = self.request.user.school
-
-        my_clubs = (
-            Club.objects.filter(school=school)
-            .select_related("sport", "school")
-            .order_by("sport__name", "gender")
-        )
-
-        # 検索に使う部活動は、必ず自校のものから選ぶ（他校の番号を指定しても無視される）
-        club_param = self.request.GET.get("club", "")
-        if club_param.isdigit():
-            club = my_clubs.filter(pk=club_param).first()
-        elif not club_param and my_clubs.count() == 1:
-            club = my_clubs.first()
-        else:
-            club = None
-
-        area_param = self.request.GET.get("area", "")
-        selected_area = area_param if area_param.isdigit() else ""
+        # 検索に使う部活動は、ログイン中の部活動
+        club = Club.objects.select_related("sport", "school").get(pk=self.request.user.club_id)
+        school = club.school
 
         # 希望する対戦レベル：指定がなければ、部活動に設定したもの
         level_param = self.request.GET.get("level", "")
@@ -118,25 +115,18 @@ class OpponentSearchView(TeacherRequiredMixin, TemplateView):
             level_param = club.desired_level if club else Club.DesiredLevel.SAME
 
         context.update({
-            "my_clubs": my_clubs,
-            "areas": Area.objects.order_by("name"),
             "level_choices": Club.DesiredLevel.choices,
             "selected_club": club,
-            "selected_area": selected_area,
             "selected_level": level_param,
             "selected_level_label": Club.DesiredLevel(level_param).label,
         })
-        if club is None:
-            return context
 
         # 相手の候補：同じ競技・同じ区分で、別の学校の部活動
         opponents = list(
             Club.objects.filter(sport=club.sport, gender=club.gender)
             .exclude(school=school)
-            .select_related("school__area", "sport")
+            .select_related("school", "sport")
         )
-        if selected_area:
-            opponents = [o for o in opponents if str(o.school.area_id) == selected_area]
 
         context["rows"] = opponent_rows(club, opponents, level_param, self.get_distance)
         context["has_my_dates"] = Availability.objects.filter(
@@ -178,11 +168,10 @@ def opponent_rows(club, opponents, desired_level, get_distance):
             "fit": fit_for(level["relation"], desired_level),
         })
 
-    # 並び順：希望のレベルに合う → 未判定 → 合わない。その中で、共通の希望日がある → 同じ地域 → 近い → 学校名
+    # 並び順：希望のレベルに合う → 未判定 → 合わない。その中で、共通の希望日がある → 近い → 学校名
     def sort_key(row):
-        same_area = school.area_id is not None and row["school"].area_id == school.area_id
         distance = row["distance"] if row["distance"] is not None else 99999
-        return (FIT_ORDER[row["fit"]], not row["common"], not same_area, distance, row["school"].name)
+        return (FIT_ORDER[row["fit"]], not row["common"], distance, row["school"].name)
 
     rows.sort(key=sort_key)
     return rows
@@ -193,7 +182,7 @@ class ClubLevelView(TeacherRequiredMixin, View):
     保存したレベルは、次に検索するとき最初から選ばれる"""
 
     def post(self, request, club_pk):
-        club = get_object_or_404(Club, pk=club_pk, school=request.user.school)
+        club = own_club(request, club_pk)
         form = ClubLevelForm(request.POST, instance=club)
         if form.is_valid():
             form.save()
@@ -210,8 +199,8 @@ class OpponentDetailView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        clubs = Club.objects.select_related("school__area", "sport")
-        club = get_object_or_404(clubs, pk=self.kwargs["club_pk"], school=self.request.user.school)
+        clubs = Club.objects.select_related("school", "sport")
+        club = own_club(self.request, self.kwargs["club_pk"])
         opponent = get_object_or_404(
             clubs.exclude(school=club.school), pk=self.kwargs["opponent_pk"],
             sport=club.sport, gender=club.gender,
@@ -221,7 +210,7 @@ class OpponentDetailView(TeacherRequiredMixin, TemplateView):
         today = timezone.localdate()
         past_matches = [
             match_row(m, club.school, today)
-            for m in school_matches(club.school).filter(
+            for m in club_matches(club).filter(
                 status=PracticeMatch.Status.CONFIRMED, date__lt=today)
             .filter(Q(applicant_club=club, opponent_club=opponent)
                     | Q(applicant_club=opponent, opponent_club=club))
@@ -234,7 +223,6 @@ class OpponentDetailView(TeacherRequiredMixin, TemplateView):
             "tournament_results": opponent.tournament_results.all()[:10],
             "past_matches": past_matches,
             "their_dates": Availability.objects.filter(club=opponent, date__gte=today)[:20],
-            "school_facilities": opponent.school.facilities.filter(sports=opponent.sport),
         })
         return context
 
@@ -248,11 +236,9 @@ class MatchRequestView(TeacherRequiredMixin, CreateView):
 
     def get_clubs(self):
         if not hasattr(self, "_clubs"):
-            clubs = Club.objects.select_related("school__area", "sport")
-            # 申込側は自校の部活動だけ
-            applicant = get_object_or_404(
-                clubs, pk=self.kwargs["club_pk"], school=self.request.user.school
-            )
+            clubs = Club.objects.select_related("school", "sport")
+            # 申込側は、ログイン中の部活動だけ
+            applicant = own_club(self.request, self.kwargs["club_pk"])
             # 相手側は、同じ競技・同じ区分で、別の学校の部活動だけ
             opponent = get_object_or_404(
                 clubs.exclude(school=applicant.school),
@@ -323,13 +309,13 @@ def proposal_queryset():
 
 
 class SentMatchListView(TeacherRequiredMixin, ListView):
-    """申し込んだ試合（自校から送った申し込み）の一覧"""
+    """申し込んだ試合（自分の部活動から送った申し込み）の一覧"""
     template_name = "matching/sent_list.html"
     context_object_name = "proposals"
 
     def get_queryset(self):
         return proposal_queryset().filter(
-            applicant_club__school=self.request.user.school
+            applicant_club=self.request.user.club
         ).order_by("-created_at")
 
 
@@ -339,7 +325,7 @@ class ReceivedMatchListView(TeacherRequiredMixin, ListView):
     context_object_name = "proposals"
 
     def get_queryset(self):
-        return proposal_queryset().filter(opponent_club__school=self.request.user.school)
+        return proposal_queryset().filter(opponent_club=self.request.user.club)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -361,9 +347,7 @@ class MatchWithdrawView(TeacherRequiredMixin, View):
     """申し込みを取り下げる（申込側だけ、申込中のものだけ）"""
 
     def post(self, request, pk):
-        match = get_object_or_404(
-            PracticeMatch, pk=pk, applicant_club__school=request.user.school
-        )
+        match = get_object_or_404(PracticeMatch, pk=pk, applicant_club=request.user.club)
         if match.status != PracticeMatch.Status.PENDING:
             messages.error(request, "確定またはお断りされた申し込みは、取り下げられません。")
         else:
@@ -376,9 +360,7 @@ class MatchRespondView(TeacherRequiredMixin, View):
     """届いた申し込みに返事をする。候補日を1日選んで確定するか、お断りする"""
 
     def post(self, request, pk):
-        match = get_object_or_404(
-            PracticeMatch, pk=pk, opponent_club__school=request.user.school
-        )
+        match = get_object_or_404(PracticeMatch, pk=pk, opponent_club=request.user.club)
         if match.status != PracticeMatch.Status.PENDING:
             messages.error(request, "この申し込みは、すでに返事をしています。")
             return redirect("received_matches")
@@ -433,18 +415,7 @@ class MatchRespondView(TeacherRequiredMixin, View):
         return redirect("received_matches")
 
 
-# ---------- 共通：自校が関わる練習試合 ----------
-
-def school_matches(school):
-    """自校が申込側・相手側のどちらかになっている練習試合"""
-    return PracticeMatch.objects.filter(
-        Q(applicant_club__school=school) | Q(opponent_club__school=school)
-    ).select_related(
-        "applicant_club__school", "applicant_club__sport",
-        "opponent_club__school", "opponent_club__sport",
-        "facility", "result",
-    )
-
+# ---------- 共通：一覧に表示する試合の情報 ----------
 
 def match_row(match, school, today):
     """一覧に表示するための、自校から見た試合の情報"""
@@ -476,9 +447,10 @@ class PlannedMatchListView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        school = self.request.user.school
+        club = self.request.user.club
+        school = club.school
         today = timezone.localdate()
-        confirmed = school_matches(school).filter(status=PracticeMatch.Status.CONFIRMED)
+        confirmed = club_matches(club).filter(status=PracticeMatch.Status.CONFIRMED)
 
         context["upcoming"] = [
             match_row(m, school, today)
@@ -499,9 +471,10 @@ class MatchResultListView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        school = self.request.user.school
+        club = self.request.user.club
+        school = club.school
         today = timezone.localdate()
-        finished = school_matches(school).filter(
+        finished = club_matches(club).filter(
             status=PracticeMatch.Status.CONFIRMED, date__lte=today
         ).order_by("-date")
 
@@ -523,7 +496,7 @@ class MatchResultEditView(TeacherRequiredMixin, View):
 
     def get_match(self):
         return get_object_or_404(
-            school_matches(self.request.user.school),
+            club_matches(self.request.user.club),
             pk=self.kwargs["pk"], status=PracticeMatch.Status.CONFIRMED,
         )
 
@@ -580,10 +553,11 @@ class MatchResultDeleteView(TeacherRequiredMixin, View):
     """自校の得点・備考を取り消す（相手校の入力は残る）"""
 
     def post(self, request, pk):
-        school = request.user.school
+        club = request.user.club
+        school = club.school
         result = get_object_or_404(
             MatchResult.objects.select_related("match__applicant_club").filter(
-                Q(match__applicant_club__school=school) | Q(match__opponent_club__school=school)
+                Q(match__applicant_club=club) | Q(match__opponent_club=club)
             ),
             pk=pk,
         )
@@ -617,15 +591,16 @@ class MessageListView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        school = self.request.user.school
+        club = self.request.user.club
+        school = club.school
 
         conversations = (
-            Conversation.for_school(school)
+            Conversation.for_club(club)
             .filter(last_message_at__isnull=False)
             .select_related("school_a", "school_b", "club_a__sport", "club_b__sport", "match")
         )
         unread = {}
-        for conv_id in Message.unread_for(school).values_list("conversation_id", flat=True):
+        for conv_id in Message.unread_for(club).values_list("conversation_id", flat=True):
             unread[conv_id] = unread.get(conv_id, 0) + 1
         last_messages = {}
         for m in Message.objects.filter(conversation__in=conversations).order_by("created_at"):
@@ -639,22 +614,23 @@ class MessageListView(TeacherRequiredMixin, TemplateView):
             row["unread"] = unread.get(conv.pk, 0)
             rows.append(row)
         context["conversations"] = rows
-        context["start_form"] = kwargs.get("start_form") or ConversationStartForm(school=school)
+        context["my_club"] = club
+        context["start_form"] = kwargs.get("start_form") or ConversationStartForm(club=club)
         return context
 
 
 class ConversationStartView(TeacherRequiredMixin, View):
-    """自校と相手校の部活動を選んで、自由メッセージの会話を開く（すでにあればそれを開く）"""
+    """相手校の部活動を選んで、自由メッセージの会話を開く（すでにあればそれを開く）"""
 
     def post(self, request):
-        form = ConversationStartForm(request.POST, school=request.user.school)
+        club = request.user.club
+        form = ConversationStartForm(request.POST, club=club)
         if not form.is_valid():
             view = MessageListView()
             view.setup(request)
             return render(request, MessageListView.template_name,
                           view.get_context_data(start_form=form))
-        conversation = Conversation.free_between(
-            form.cleaned_data["my_club"], form.cleaned_data["opponent_club"])
+        conversation = Conversation.free_between(club, form.cleaned_data["opponent_club"])
         return redirect("message_room", pk=conversation.pk)
 
 
@@ -665,12 +641,12 @@ class MessageRoomView(TeacherRequiredMixin, View):
     def get_conversation(self):
         conversation = get_object_or_404(
             Conversation.objects.select_related(
-                "school_a__area", "school_b__area", "club_a__sport", "club_b__sport",
+                "school_a", "school_b", "club_a__sport", "club_b__sport",
                 "match__applicant_club__school", "match__opponent_club__school", "match__facility",
             ),
             pk=self.kwargs["pk"],
         )
-        if not conversation.includes(self.request.user.school):
+        if not conversation.includes(self.request.user.club):
             raise Http404
         return conversation
 
@@ -709,7 +685,7 @@ class MatchConversationView(TeacherRequiredMixin, View):
 
     def get(self, request, pk):
         match = get_object_or_404(
-            school_matches(request.user.school).select_related(None), pk=pk)
+            club_matches(request.user.club).select_related(None), pk=pk)
         return redirect("message_room", pk=Conversation.for_match(match).pk)
 
 
@@ -721,27 +697,18 @@ class ScheduleView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        school = self.request.user.school
         today = timezone.localdate()
 
-        my_clubs = (
-            Club.objects.filter(school=school)
-            .select_related("sport")
-            .order_by("sport__name", "gender")
-        )
-        context["my_clubs"] = my_clubs
-
-        club_param = self.request.GET.get("club", "")
-        club = my_clubs.filter(pk=club_param).first() if club_param.isdigit() else None
+        # 自分の部活動は、ログイン中の部活動
+        club = Club.objects.select_related("sport", "school").get(pk=self.request.user.club_id)
+        school = club.school
         context["selected_club"] = club
-        if club is None:
-            return context
 
         # 相手の候補：同じ競技・同じ区分で、別の学校の部活動
         opponent_clubs = (
             Club.objects.filter(sport=club.sport, gender=club.gender)
             .exclude(school=school)
-            .select_related("school__area", "sport")
+            .select_related("school", "sport")
             .order_by("school__name")
         )
         context["opponent_clubs"] = opponent_clubs
@@ -807,11 +774,11 @@ class ScheduleView(TeacherRequiredMixin, TemplateView):
 def live_updates(request):
     """サイドバーの件数と、データの変化の目印を返す（画面が数秒ごとに問い合わせる）"""
     user = request.user
-    if not user.is_authenticated or user.role != User.Role.TEACHER or user.school_id is None:
+    if not user.is_authenticated or not is_club_account(user):
         # ログインが切れた・別のアカウントに切り替わったときは、画面側が問い合わせをやめる
         return JsonResponse({"error": "forbidden"}, status=403)
     return JsonResponse({
         "user": user.pk,
-        "badges": teacher_badges(user.school),
-        "versions": live_versions(user.school),
+        "badges": teacher_badges(user.club),
+        "versions": live_versions(user.club),
     })

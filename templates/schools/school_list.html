@@ -9,7 +9,7 @@
 <div class="welcome-area">
     <div>
         <h2>登録済み学校一覧</h2>
-        <p>各学校の基本情報を確認・編集します。学校の新規登録は「学校アカウント管理」から行います。</p>
+        <p>各学校の学校名・所在地・部活動を確認し、学校名と所在地を編集できます。学校の登録は「部活動アカウント管理」で、部活動アカウントの作成と一緒に行います。</p>
     </div>
 </div>
 
@@ -21,17 +21,13 @@
             <span>校</span>
         </div>
     </div>
-    <a href="{% url 'school_account_add' %}" class="admin-primary-button">
-        <span>＋</span>
-        学校アカウントを作成して登録
-    </a>
 </div>
 
 <div class="admin-table-card">
     <div class="table-card-header">
         <div>
             <h3>学校情報一覧</h3>
-            <p>位置情報は、住所から自動で求めます。距離の計算に使われます。</p>
+            <p>所在地から位置を自動で求め、学校どうしの距離の計算に使います。</p>
         </div>
     </div>
 
@@ -40,9 +36,8 @@
             <thead>
                 <tr>
                     <th>学校名</th>
-                    <th>所属地域</th>
                     <th>所在地</th>
-                    <th>位置情報</th>
+                    <th>部活動名</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -50,13 +45,6 @@
                 {% for school in schools %}
                     <tr>
                         <td><span class="school-name">{{ school.name }}</span></td>
-                        <td>
-                            {% if school.area %}
-                                <span class="region-label">{{ school.area.name }}</span>
-                            {% else %}
-                                <span class="unregistered">未登録</span>
-                            {% endif %}
-                        </td>
                         <td>
                             {% if school.address %}
                                 <span class="school-address">{{ school.address }}</span><br>
@@ -67,22 +55,21 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if school.latitude is not None %}
-                                <span class="status-label status-active">● 取得済み</span>
-                            {% else %}
-                                <span class="status-label status-inactive">● 未取得</span>
-                            {% endif %}
+                            {% for club in school.club_set.all %}
+                                <span class="school-club-name">{{ club.sport.display_icon }} {{ club.name }}</span>
+                            {% empty %}
+                                <span class="unregistered">なし</span>
+                            {% endfor %}
                         </td>
                         <td>
                             <div class="table-actions">
                                 <a href="{% url 'school_edit' school.pk %}" class="admin-edit-button">編集</a>
-                                <a href="{% url 'school_delete' school.pk %}" class="admin-stop-button">削除</a>
                             </div>
                         </td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="empty-message">学校情報はまだ登録されていません。</td>
+                        <td colspan="4" class="empty-message">学校情報はまだ登録されていません。</td>
                     </tr>
                 {% endfor %}
             </tbody>

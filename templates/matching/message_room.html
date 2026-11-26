@@ -10,7 +10,7 @@
     <div>
         <p class="messages-eyebrow">MESSAGES</p>
         <h2>{{ school.name }}</h2>
-        <p>{{ school.area.name|default:"地域未登録" }}{% if school.address %}・{{ school.address }}{% endif %}</p>
+        {% if school.address %}<p>{{ school.address }}</p>{% endif %}
     </div>
 </div>
 
