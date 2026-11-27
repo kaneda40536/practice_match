@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 
-# 学校ID・部活動ID（ログインに使う）に使える文字
+# 学校ID・部活ID・管理者ID（ログインに使う）に使える文字
 login_code_validator = RegexValidator(
     r"^[A-Za-z0-9_-]+$", "半角英数字と「-」「_」だけで入力してください。")
 
@@ -25,17 +26,29 @@ class Sport(models.Model):
 
 
 class School(models.Model):
-    name = models.CharField("学校名", max_length=100)
-    code = models.CharField(
-        "学校ID", max_length=30, unique=True, validators=[login_code_validator],
-        help_text="ログイン時に入力するIDです。半角英数字で入力してください。",
+    """学校情報。教育委員会が、学校アカウント（学校ID）を指定して登録する。
+
+    学校ID（ログインに使う）は、ひも付いた学校アカウントのID（account.username）。
+    """
+
+    account = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name="school_profile", verbose_name="学校アカウント",
     )
+    name = models.CharField("学校名", max_length=100)
     address = models.CharField("所在地", max_length=200, blank=True)
+    phone = models.CharField("連絡先", max_length=30, blank=True)
+    sports = models.ManyToManyField(Sport, blank=True, related_name="schools", verbose_name="対応競技")
     latitude = models.FloatField("緯度", null=True, blank=True)
     longitude = models.FloatField("経度", null=True, blank=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def code(self):
+        """学校ID"""
+        return self.account.username if self.account_id else ""
 
 
 class Club(models.Model):
@@ -53,8 +66,8 @@ class Club(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE, verbose_name="学校")
     sport = models.ForeignKey(Sport, on_delete=models.PROTECT, verbose_name="競技種目")
     code = models.CharField(
-        "部活動ID", max_length=30, validators=[login_code_validator],
-        help_text="ログイン時に、学校IDと一緒に入力するIDです。同じ学校の中で重ならないようにしてください。",
+        "部活ID", max_length=30, validators=[login_code_validator],
+        help_text="部活動アカウントの登録とログインで、学校IDと一緒に入力するIDです。同じ学校の中で重ならないようにしてください。",
     )
     gender = models.CharField("区分", max_length=10, choices=Gender.choices)
     desired_level = models.CharField(

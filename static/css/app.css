@@ -1377,3 +1377,44 @@ a.schedule-apply-button {
     margin: 2px 6px 2px 0;
     white-space: nowrap;
 }
+
+
+/* ---------- ログイン・新規登録の画面 ---------- */
+
+/* 登録が終わったときなどの、成功のお知らせ */
+.success-message {
+    margin-bottom: 20px;
+    padding: 12px;
+    border: 1px solid #bfe3c9;
+    border-radius: 7px;
+    background: #eefaf1;
+    color: #237a3f;
+    font-size: 13px;
+}
+
+.entry-card .entry-success {
+    color: #237a3f !important;
+}
+
+/* 画面の下の、ほかの画面へのリンク */
+.school-login-links,
+.entry-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.school-login-links a,
+.entry-links a {
+    color: #245b91;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.school-login-links a:hover,
+.entry-links a:hover {
+    text-decoration: underline;
+}

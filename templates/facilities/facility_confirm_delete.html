@@ -1,40 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}会場の削除｜練習試合調整支援システム{% endblock %}
+{% block title %}施設削除確認｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}会場管理{% endblock %}
+{% block heading %}施設情報管理{% endblock %}
 
 {% block content %}
 
 <div class="account-form-heading">
-    <h2>会場の削除</h2>
-    <p>以下の会場を削除してもよろしいですか？</p>
+    <h2>施設情報の削除</h2>
+    <p>以下の施設情報を削除してもよろしいですか？</p>
 </div>
 
 <div class="account-form-card">
     {% if match_count %}
-        <div class="confirm-warning">
-            <strong>この会場は削除できません。</strong>
-            <ul>
-                <li>練習試合の会場として使われています（{{ match_count }}件）</li>
-            </ul>
+        <div class="account-form-error">
+            この施設は、練習試合の会場として使われているため削除できません（{{ match_count }}件）。
         </div>
-    {% else %}
-        <div class="confirm-warning">この操作は取り消すことができません。</div>
     {% endif %}
 
-    <dl class="confirm-list">
-        <dt>会場名</dt>
-        <dd>{{ object.name }}</dd>
-        <dt>所在地</dt>
-        <dd>{{ object.address }}</dd>
-        <dt>対応競技</dt>
-        <dd>
-            {% for sport in object.sports.all %}{{ sport.name }}{% if not forloop.last %}、{% endif %}{% empty %}登録なし{% endfor %}
-        </dd>
-        <dt>設備</dt>
-        <dd>{{ object.equipment|default:"なし"|linebreaksbr }}</dd>
-    </dl>
+    <div class="account-form-group">
+        <label>施設名</label>
+        <p>{{ object.name }}</p>
+    </div>
+
+    <div class="account-form-group">
+        <label>所在地</label>
+        <p>{{ object.address }}</p>
+    </div>
+
+    <div class="account-form-group">
+        <label>対応競技</label>
+        <p>{% for sport in object.sports.all %}{{ sport.name }}{% if not forloop.last %}、{% endif %}{% empty %}登録なし{% endfor %}</p>
+    </div>
+
+    <div class="account-form-group">
+        <label>連絡先</label>
+        <p>{{ object.phone|default:"未登録" }}</p>
+    </div>
+
+    <div class="account-form-group">
+        <label>備考</label>
+        <p>{{ object.equipment|default:"なし"|linebreaksbr }}</p>
+    </div>
 
     <div class="account-form-actions">
         <a href="{% url 'facility_list' %}" class="admin-cancel-button">キャンセル</a>

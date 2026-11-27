@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}学校情報管理｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}学校情報管理{% endblock %}
+
+{% block content %}
+
+<section class="school-intro">
+    <span class="english-label">SCHOOL INFORMATION</span>
+    <h2>学校情報管理</h2>
+    <p>自分の学校の基本情報を確認し、対応競技を登録できます。基本情報を変更したいときは、教育委員会にご連絡ください。</p>
+</section>
+
+<form method="post" class="profile-form">
+    {% csrf_token %}
+
+    <!-- 基本情報 -->
+    <section class="profile-section">
+        <div class="profile-section-heading">
+            <div class="profile-heading-icon">▣</div>
+            <div>
+                <h3>基本情報</h3>
+                <p>教育委員会に登録されている学校の基本情報です。</p>
+            </div>
+        </div>
+
+        <div class="profile-fields">
+            <div class="profile-field">
+                <label for="name">学校名</label>
+                <input type="text" id="name" value="{{ profile.name }}" readonly>
+            </div>
+
+            <div class="profile-field">
+                <label for="address">所在地</label>
+                <input type="text" id="address" value="{{ profile.address }}" readonly>
+            </div>
+
+            <div class="profile-field">
+                <label for="phone">連絡先</label>
+                <input type="text" id="phone" value="{{ profile.phone|default:'未登録' }}" readonly>
+            </div>
+
+            <div class="profile-field">
+                <label for="school_id">学校ID</label>
+                <input type="text" id="school_id" value="{{ profile.code }}" readonly>
+            </div>
+        </div>
+    </section>
+
+    <!-- 対応競技 -->
+    <section class="profile-section">
+        <div class="profile-section-heading">
+            <div class="profile-heading-icon green">⚽</div>
+            <div>
+                <h3>対応競技</h3>
+                <p>自校で対応している競技を選択してください。</p>
+            </div>
+        </div>
+
+        <div class="profile-sports">
+            {% for sport in sports %}
+                <label class="profile-sport-option">
+                    <input type="checkbox" name="sports" value="{{ sport.pk }}"
+                           {% if sport.pk in selected_sports %}checked{% endif %}>
+                    <span class="profile-sport-check"></span>
+                    <span class="profile-sport-name">{{ sport.display_icon }} {{ sport.name }}</span>
+                </label>
+            {% empty %}
+                <p class="profile-no-sports">登録されている競技はありません。</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- ボタン -->
+    <div class="profile-actions">
+        <a href="{% url 'advisor_home' %}" class="profile-back-button">← 顧問ホームに戻る</a>
+        <button type="submit" class="profile-save-button">保存する</button>
+    </div>
+</form>
+
+{% endblock %}

@@ -7,10 +7,8 @@
 {% block content %}
 
 <div class="welcome-area">
-    <div>
-        <h2>登録済み競技一覧</h2>
-        <p>システムで取り扱う競技の登録・削除を行います。</p>
-    </div>
+    <h2>登録済み競技一覧</h2>
+    <p>システムで取り扱う競技の登録・編集・削除を行います。</p>
 </div>
 
 <div class="account-summary">
@@ -21,6 +19,7 @@
             <span>競技</span>
         </div>
     </div>
+
     <a href="{% url 'sport_add' %}" class="admin-primary-button">
         <span>＋</span>
         新しい競技を登録
@@ -31,7 +30,7 @@
     <div class="table-card-header">
         <div>
             <h3>競技一覧</h3>
-            <p>部活動や会場で使われている競技は、削除できません。</p>
+            <p>登録されている競技を管理できます。部活動や施設・学校で使われている競技は削除できません。</p>
         </div>
     </div>
 
@@ -47,12 +46,30 @@
                 </div>
 
                 <div class="sport-card-actions">
-                    <a href="{% url 'sport_delete' sport.pk %}" class="admin-delete-button">削除</a>
+                    <a href="{% url 'sport_edit' sport.pk %}" class="admin-edit-button">編集</a>
+                    {% if not sport.delete_error %}
+                        <form action="{% url 'sport_delete' sport.pk %}" method="post"
+                              onsubmit="return confirm('「{{ sport.name }}」を削除しますか？');">
+                            {% csrf_token %}
+                            <button type="submit" class="admin-delete-button">削除</button>
+                        </form>
+                    {% endif %}
                 </div>
+
+                {% if sport.delete_error %}
+                    <div class="form-note">
+                        <strong>削除できません。</strong>
+                        <ul>
+                            {% for reason in sport.delete_error %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
             </article>
         {% empty %}
             <div class="sport-empty">
-                <div class="sport-empty-icon">🏅</div>
+                <div class="sport-empty-icon">⚽</div>
                 <h3>競技が登録されていません</h3>
                 <p>「新しい競技を登録」から競技を追加してください。</p>
             </div>

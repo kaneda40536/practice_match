@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}顧問ホーム｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}顧問ホーム{% endblock %}
+
+{% block content %}
+
+<div class="welcome-area">
+    <div>
+        <h2>{{ user.school.name }}（{{ user.advisor_name }} 先生）</h2>
+        <p>部活動管理で自校の部活動と部活IDを登録し、部活動に「学校ID：{{ user.school.code }}」と部活IDを伝えてください。部活動は、そのIDで部活動アカウントを新規登録します。</p>
+    </div>
+</div>
+
+{% include "_home_dashboard.html" %}
+
+{% endblock %}

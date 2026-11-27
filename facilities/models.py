@@ -17,7 +17,8 @@ class Facility(models.Model):
     name = models.CharField("施設名", max_length=100)
     address = models.CharField("所在地", max_length=200, blank=True)
     sports = models.ManyToManyField(Sport, verbose_name="対応競技")
-    equipment = models.TextField("設備", blank=True)
+    phone = models.CharField("連絡先", max_length=30, blank=True)
+    equipment = models.TextField("備考", blank=True, help_text="設備（照明・更衣室・駐車場など）や、施設に関する補足情報")
     latitude = models.FloatField("緯度", null=True, blank=True)
     longitude = models.FloatField("経度", null=True, blank=True)
 

@@ -1,37 +1,36 @@
 {% extends "base.html" %}
 
-{% block title %}会場管理｜練習試合調整支援システム{% endblock %}
+{% block title %}施設情報管理｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}会場管理{% endblock %}
+{% block heading %}施設情報管理{% endblock %}
 
 {% block content %}
 
 <div class="welcome-area">
-    <div>
-        <h2>会場管理</h2>
-        <p>練習試合の会場になる公共の施設（市民体育館など）を登録・管理できます。</p>
-    </div>
+    <h2>登録済み施設一覧</h2>
+    <p>練習試合で利用する施設の情報を確認・管理できます。ここで登録した施設は、すべての学校の練習試合で会場の候補になります。</p>
 </div>
 
 <div class="account-summary">
     <div>
-        <span class="summary-label">REGISTERED VENUES</span>
+        <span class="summary-label">REGISTERED FACILITIES</span>
         <div class="summary-number">
             {{ facilities|length }}
-            <span>会場</span>
+            <span>施設</span>
         </div>
     </div>
+
     <a href="{% url 'facility_add' %}" class="admin-primary-button">
         <span>＋</span>
-        新しい会場を登録
+        新しい施設を登録
     </a>
 </div>
 
 <div class="admin-table-card">
     <div class="table-card-header">
         <div>
-            <h3>公共の会場一覧</h3>
-            <p>教育委員会が登録した会場です。すべての学校の練習試合で、会場の候補になります。</p>
+            <h3>施設情報一覧</h3>
+            <p>登録されている施設の所在地や対応競技を確認できます。</p>
         </div>
     </div>
 
@@ -40,11 +39,10 @@
             <table class="admin-data-table facility-data-table">
                 <thead>
                     <tr>
-                        <th>会場名</th>
+                        <th>施設名</th>
                         <th>所在地</th>
                         <th>対応競技</th>
-                        <th>設備</th>
-                        <th>位置情報</th>
+                        <th>連絡先</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -60,20 +58,13 @@
                             <td>
                                 <div class="facility-sports">
                                     {% for sport in facility.sports.all %}
-                                        <span class="facility-sport-label">{{ sport.display_icon }} {{ sport.name }}</span>
+                                        <span class="facility-sport-label">{{ sport.name }}</span>
                                     {% empty %}
                                         <span class="facility-no-sport">未登録</span>
                                     {% endfor %}
                                 </div>
                             </td>
-                            <td>{{ facility.equipment|default:"—"|linebreaksbr }}</td>
-                            <td>
-                                {% if facility.latitude is not None %}
-                                    <span class="status-label status-active">● 取得済み</span>
-                                {% else %}
-                                    <span class="status-label status-inactive">● 未取得</span>
-                                {% endif %}
-                            </td>
+                            <td>{{ facility.phone|default:"—" }}</td>
                             <td>
                                 <div class="facility-actions">
                                     <a href="{% url 'facility_edit' facility.pk %}" class="facility-edit-button">編集</a>
@@ -88,8 +79,8 @@
     {% else %}
         <div class="facility-empty">
             <div class="facility-empty-icon">⌖</div>
-            <h3>公共の会場が登録されていません</h3>
-            <p>「新しい会場を登録」から会場を追加できます。</p>
+            <h3>施設が登録されていません</h3>
+            <p>「新しい施設を登録」から施設情報を追加できます。</p>
         </div>
     {% endif %}
 </div>

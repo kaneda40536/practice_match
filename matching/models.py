@@ -12,6 +12,7 @@ class Availability(models.Model):
     club = models.ForeignKey(Club, on_delete=models.CASCADE, verbose_name="部活動")
     date = models.DateField("日付")
     can_host = models.BooleanField("自校で受け入れ可", default=False)
+    notes = models.CharField("備考", max_length=200, blank=True)
 
     class Meta:
         unique_together = ("club", "date")
@@ -19,6 +20,11 @@ class Availability(models.Model):
 
     def __str__(self):
         return f"{self.club} {self.date}"
+
+    @property
+    def schedule_type(self):
+        """日程の種類（デザインの「希望日」「受入可能日」）。受入可能日は、自校で相手を迎えられる日"""
+        return "受入可能日" if self.can_host else "希望日"
 
 
 class PracticeMatch(models.Model):

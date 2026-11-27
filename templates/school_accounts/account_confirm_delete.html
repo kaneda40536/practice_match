@@ -1,32 +1,51 @@
 {% extends "base.html" %}
 
-{% block title %}部活動アカウントの削除｜練習試合調整支援システム{% endblock %}
+{% block title %}学校アカウント削除確認｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}部活動アカウント管理{% endblock %}
+{% block heading %}学校アカウント削除{% endblock %}
 
 {% block content %}
 
-<div class="account-form-heading">
-    <h2>部活動アカウントの削除</h2>
-    <p>{{ target.display_name }}（学校ID：{{ target.club.school.code }}／部活動ID：{{ target.club.code }}）のアカウントを削除します。</p>
+<div class="welcome-area">
+    <h2>学校アカウント削除確認</h2>
+    <p>削除するアカウントを確認してください。</p>
 </div>
 
-<div class="account-form-card">
-    <p class="account-form-error">削除すると元に戻せません。この部活動の次のデータも一緒に削除されます。</p>
-    <ul>
-        <li>練習試合の申し込み・試合（相手校とのものを含む）：{{ match_count }}件（試合結果・メッセージを含む）</li>
-        <li>大会成績：{{ result_count }}件</li>
-        <li>希望日</li>
-    </ul>
-    <p class="account-form-note">ログインだけを止めたいときは、削除ではなく「利用停止」にしてください。</p>
-
-    <form method="post">
-        {% csrf_token %}
-        <div class="account-form-actions">
-            <a href="{% url 'school_account_list' %}" class="account-back-button">キャンセル</a>
-            <button type="submit" class="admin-stop-button">削除する</button>
+<div class="admin-table-card">
+    <div class="table-card-header">
+        <div>
+            <h3>削除対象のアカウント</h3>
+            <p>以下のアカウントを削除しようとしています。</p>
         </div>
-    </form>
+    </div>
+
+    <div class="account-delete-content">
+        <p><strong>学校名：</strong>{% if account.school_profile %}{{ account.school_profile.name }}{% else %}未登録{% endif %}</p>
+        <p><strong>学校ID：</strong>{{ account.username }}</p>
+
+        {% if has_school %}
+            <p class="account-form-error">
+                学校情報が登録されているため、このアカウントは削除できません。
+                先に学校情報を削除してください。
+            </p>
+        {% else %}
+            <p>この操作は取り消せません。本当に削除しますか？</p>
+        {% endif %}
+
+        <div class="table-actions">
+            <a href="{% url 'school_account_list' %}" class="admin-back-link">キャンセル</a>
+            {% if not has_school %}
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="admin-stop-button">削除する</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="admin-back-area">
+    <a href="{% url 'school_account_list' %}" class="admin-back-link">← 学校アカウント一覧に戻る</a>
 </div>
 
 {% endblock %}

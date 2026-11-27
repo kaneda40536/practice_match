@@ -1,6 +1,8 @@
 from django.urls import reverse
 
-from .menus import BOARD_MENU, BOARD_SECTIONS, TEACHER_MENU, TEACHER_SECTIONS
+from .menus import (
+    ADVISOR_MENU, ADVISOR_SECTIONS, BOARD_MENU, BOARD_SECTIONS, TEACHER_MENU, TEACHER_SECTIONS,
+)
 
 
 def build_menu(sections, menu, current_url_name=None, badges=None):
@@ -55,6 +57,17 @@ def navigation(request):
             "nav_brand_label": "ADMIN SYSTEM",
             "nav_portal_label": "ADMINISTRATION",
             "nav_user_name": "管理者",
+        }
+
+    if user.role == "teacher":   # 顧問
+        return {
+            "nav_sections": build_menu(ADVISOR_SECTIONS, ADVISOR_MENU, current),
+            "nav_home_url": reverse("advisor_home"),
+            "nav_is_home": current == "advisor_home",
+            "nav_brand_icon": "S",
+            "nav_brand_label": "SCHOOL SYSTEM",
+            "nav_portal_label": "SCHOOL PORTAL",
+            "nav_user_name": user.display_name,
         }
 
     club = user.club

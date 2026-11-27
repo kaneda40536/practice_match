@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン｜練習試合調整支援システム</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="entry-page">
+
+    <main class="entry-container">
+
+        <section class="entry-left">
+            <p class="entry-en">PRACTICE MATCH COORDINATION SYSTEM</p>
+
+            <h1>
+                練習試合調整支援<br>
+                システム
+            </h1>
+
+            <p class="entry-description">
+                学校と学校をつなぐ、<br>
+                新しい練習試合調整のかたち。
+            </p>
+
+            <span class="entry-number">SCHOOL PORTAL / 01</span>
+        </section>
+
+        <section class="entry-right">
+            <div class="entry-card">
+
+                <span class="entry-label">ACCOUNT LOGIN</span>
+
+                <h2>IDを入力</h2>
+                <p>ログインするアカウントのIDを入力してください。管理者の方は管理者ID、学校の方は学校IDを入力します。</p>
+
+                {% for message in messages %}
+                    <p class="entry-error{% if message.tags == 'success' %} entry-success{% endif %}">{{ message }}</p>
+                {% endfor %}
+                {% if error %}
+                    <p class="entry-error">{{ error }}</p>
+                {% endif %}
+
+                <form action="{% url 'entry' %}" method="post" novalidate>
+                    {% csrf_token %}
+
+                    <label for="account_id">アカウントID</label>
+
+                    <input
+                        type="text"
+                        id="account_id"
+                        name="account_id"
+                        value="{{ form.account_id.value|default:'' }}"
+                        placeholder="例：school001"
+                        autocomplete="username"
+                        autofocus
+                        required
+                    >
+
+                    <button type="submit">次へ →</button>
+                </form>
+
+                <div class="entry-links">
+                    <a href="{% url 'advisor_register' %}">顧問アカウントを新規登録</a>
+                    <a href="{% url 'club_account_register' %}">部活動アカウントを新規登録</a>
+                </div>
+
+                <span class="entry-footer">
+                    PRACTICE MATCH COORDINATION SYSTEM
+                </span>
+
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>

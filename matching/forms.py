@@ -14,14 +14,23 @@ MAX_CANDIDATES = 5
 
 
 class AvailabilityForm(RequiredMessageMixin, forms.ModelForm):
-    """希望日を1日追加するフォーム（部活動は自動で入る）"""
+    """日程（希望日）を1日追加するフォーム（部活動は自動で入る）。
+
+    日程の種類：「希望日」は練習試合をしたい日、「受入可能日」は自校で相手を迎えられる日（can_host）
+    """
+
+    SCHEDULE_TYPES = [("希望日", "希望日"), ("受入可能日", "受入可能日")]
+    schedule_type = forms.ChoiceField(label="日程の種類", choices=SCHEDULE_TYPES, initial="希望日")
+    field_order = ["date", "schedule_type", "notes"]
 
     class Meta:
         model = Availability
-        fields = ["date", "can_host"]
+        fields = ["date", "notes"]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "notes": forms.Textarea(attrs={"rows": 3}),
         }
+        labels = {"date": "日付"}
 
     def __init__(self, *args, club, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,6 +46,10 @@ class AvailabilityForm(RequiredMessageMixin, forms.ModelForm):
         if Availability.objects.filter(club=self.club, date=date).exists():
             raise forms.ValidationError("この日はすでに登録されています。")
         return date
+
+    def save(self, commit=True):
+        self.instance.can_host = self.cleaned_data["schedule_type"] == "受入可能日"
+        return super().save(commit)
 
 
 def missing_host_dates(club, dates):

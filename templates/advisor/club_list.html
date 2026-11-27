@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}部活動管理｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}部活動管理{% endblock %}
+
+{% block content %}
+
+<section class="school-intro">
+    <span class="english-label">CLUB MANAGEMENT</span>
+    <h2>部活動管理</h2>
+    <p>自分の学校の部活動を登録・確認できます。部活IDは、部活動アカウントの新規登録とログインで、学校ID（{{ user.school.code }}）と一緒に使います。</p>
+</section>
+
+<!-- 登録済み部活動 -->
+<section class="club-section">
+    <div class="club-section-heading">
+        <div class="club-heading-icon">▤</div>
+        <div>
+            <h3>登録済みの部活動</h3>
+            <p>現在登録されている部活動の一覧です。</p>
+        </div>
+    </div>
+
+    {% if clubs %}
+        <div class="club-table-wrapper">
+            <table class="club-table">
+                <thead>
+                    <tr>
+                        <th>部活動名</th>
+                        <th>競技</th>
+                        <th>部活ID</th>
+                        <th>アカウント</th>
+                        <th class="club-action-column">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for club in clubs %}
+                        <tr>
+                            <td class="club-name-cell">{{ club.name }}</td>
+                            <td><span class="club-sport-label">{{ club.sport.display_icon }} {{ club.sport.name }}</span></td>
+                            <td><strong>{{ club.code }}</strong></td>
+                            <td>
+                                {% if club.account %}
+                                    <span class="status-label status-active">● 登録済み</span>
+                                {% else %}
+                                    <span class="status-label status-inactive">● 未登録</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="club-actions">
+                                    <a href="{% url 'advisor_club_edit' club.pk %}" class="club-edit-button">編集</a>
+                                    {% if club.account %}
+                                        <form method="post" action="{% url 'advisor_club_account_reset' club.pk %}"
+                                              onsubmit="return confirm('この部活動のアカウント登録を解除しますか？部活動はもう一度、新規登録できます。');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="club-edit-button">登録解除</button>
+                                        </form>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'advisor_club_delete' club.pk %}"
+                                          onsubmit="return confirm('この部活動を削除しますか？部活動アカウントや、練習試合・大会成績の記録も削除されます。');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="club-delete-button">削除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="club-empty">
+            <div class="club-empty-icon">▤</div>
+            <p>登録されている部活動はありません。</p>
+            <span>下のフォームから部活動を登録できます。</span>
+        </div>
+    {% endif %}
+</section>
+
+<!-- 部活動登録 -->
+<section class="club-section">
+    <div class="club-section-heading">
+        <div class="club-heading-icon green">＋</div>
+        <div>
+            <h3>部活動の登録</h3>
+            <p>新しい部活動を登録できます。</p>
+        </div>
+    </div>
+
+    {% if error %}
+        <div class="club-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" class="club-register-form" novalidate>
+        {% csrf_token %}
+
+        <div class="club-register-fields">
+            <div class="club-field">
+                <label for="id_sport">競技種目</label>
+                {{ form.sport }}
+            </div>
+            <div class="club-field">
+                <label for="id_gender">男女区分</label>
+                {{ form.gender }}
+            </div>
+            <div class="club-field">
+                <label for="id_code">部活ID</label>
+                <input type="text" id="id_code" name="code" value="{{ form.code.value|default:'' }}" placeholder="例：soccer_m" maxlength="30" required>
+            </div>
+        </div>
+
+        <div class="club-register-actions">
+            <button type="submit" class="club-register-button">部活動を登録する</button>
+        </div>
+    </form>
+</section>
+
+<!-- ホームに戻る -->
+<div class="club-back-area">
+    <a href="{% url 'advisor_home' %}" class="club-back-button">← 顧問ホームに戻る</a>
+</div>
+
+{% endblock %}

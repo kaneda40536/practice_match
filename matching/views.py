@@ -8,7 +8,7 @@ from django.views.decorators.cache import never_cache
 from django.views.generic import CreateView, ListView, TemplateView, View
 
 from accounts.context_processors import teacher_badges
-from accounts.views import TeacherRequiredMixin, is_club_account
+from accounts.views import TeacherRequiredMixin, form_error_message, is_club_account
 from schools.distance import distance_km
 from schools.forms import ClubLevelForm
 from schools.models import Club
@@ -68,8 +68,11 @@ class ClubAvailabilityView(TeacherRequiredMixin, CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, "希望日を追加しました。")
+        messages.success(self.request, "日程を登録しました。")
         return response
+
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form, error=form_error_message(form)))
 
     def get_success_url(self):
         return reverse("club_availability", args=[self.kwargs["club_pk"]])
@@ -82,7 +85,7 @@ class AvailabilityDeleteView(TeacherRequiredMixin, View):
         availability = get_object_or_404(Availability, pk=pk, club=request.user.club)
         club_pk = availability.club_id
         availability.delete()
-        messages.success(request, "希望日を削除しました。")
+        messages.success(request, "日程を削除しました。")
         return redirect("club_availability", club_pk=club_pk)
 
 

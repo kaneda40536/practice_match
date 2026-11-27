@@ -6,10 +6,9 @@ from .models import User
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ("追加情報", {"fields": ("role", "club")}),
+        ("追加情報", {"fields": ("role", "school", "club", "advisor_name")}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ("追加情報", {"fields": ("role", "club")}),
+        ("追加情報", {"fields": ("role", "school", "club", "advisor_name")}),
     )
     list_display = ("username", "role", "school", "club", "is_active")
-    readonly_fields = ("school",)

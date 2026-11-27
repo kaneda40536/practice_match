@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}部活動編集｜練習試合調整支援システム{% endblock %}
+
+{% block heading %}部活動編集{% endblock %}
+
+{% block content %}
+
+<section class="school-intro">
+    <span class="english-label">CLUB MANAGEMENT</span>
+    <h2>部活動編集</h2>
+    <p>登録済みの部活動情報を変更できます。部活IDを変えると、部活動は新しい部活IDでログインすることになります。</p>
+</section>
+
+<section class="school-form-card">
+    <div class="school-section-heading">
+        <h3>部活動情報</h3>
+        <p>「{{ club.name }}」の情報を編集できます。</p>
+    </div>
+
+    {% if error %}
+        <p class="error-message">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" class="school-edit-form" novalidate>
+        {% csrf_token %}
+
+        <div class="school-form-grid">
+            <div class="school-form-group">
+                <label for="id_sport">競技</label>
+                {{ form.sport }}
+            </div>
+            <div class="school-form-group">
+                <label for="id_gender">男女区分</label>
+                {{ form.gender }}
+            </div>
+            <div class="school-form-group">
+                <label for="id_code">部活ID</label>
+                <input type="text" id="id_code" name="code" value="{{ form.code.value|default:'' }}" placeholder="例：soccer_m" maxlength="30" required>
+            </div>
+        </div>
+
+        <div class="school-form-actions">
+            <button type="submit" class="school-save-button">変更を保存</button>
+        </div>
+    </form>
+</section>
+
+<div class="school-back-area">
+    <a href="{% url 'advisor_club_list' %}" class="school-back-link">← 部活動一覧に戻る</a>
+</div>
+
+{% endblock %}

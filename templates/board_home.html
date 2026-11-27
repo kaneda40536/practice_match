@@ -11,6 +11,10 @@
         <h2>管理ダッシュボード</h2>
         <p>システムの登録状況を確認できます。</p>
     </div>
+    <a href="{% url 'admin_account_create' %}" class="admin-primary-button">
+        <span>＋</span>
+        管理者アカウントを作成
+    </a>
 </div>
 
 {% include "_home_dashboard.html" %}

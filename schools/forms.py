@@ -54,13 +54,40 @@ class SportForm(RequiredMessageMixin, forms.ModelForm):
         self.fields["icon"].required = True
 
 
-class SchoolUpdateForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelForm):
-    """教育委員会が、学校の情報（学校名・所在地）を編集するフォーム"""
+class SchoolInfoForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelForm):
+    """教育委員会が、学校情報を登録・編集するフォーム。
+
+    登録のときは、学校アカウント管理で作った学校ID（学校情報がまだない学校アカウント）を指定する。
+    編集のときは、学校IDは変えられない（学校アカウント管理で変える）。
+    """
+
+    account_id = forms.CharField(label="学校ID", max_length=150)
+    field_order = ["account_id", "name", "address", "phone"]
 
     class Meta:
         model = School
-        fields = ["name", "address"]
+        fields = ["name", "address", "phone"]
         help_texts = {"address": ADDRESS_HELP}
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "例：〇〇高等学校"}),
+            "phone": forms.TextInput(attrs={"placeholder": "例：011-000-0000"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            del self.fields["account_id"]
+
+    def clean_account_id(self):
+        from accounts.models import User   # 循環 import を避けるため、ここで読み込む
+        account_id = self.cleaned_data["account_id"].strip()
+        account = User.objects.filter(role=User.Role.SCHOOL, username=account_id).first()
+        if account is None:
+            raise forms.ValidationError("この学校IDの学校アカウントがありません。先に学校アカウント管理で作成してください。")
+        if School.objects.filter(account=account).exists():
+            raise forms.ValidationError("この学校IDの学校情報は、すでに登録されています。")
+        self.instance.account = account
+        return account_id
 
     def clean_name(self):
         name = self.cleaned_data["name"]
@@ -69,12 +96,17 @@ class SchoolUpdateForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelFor
         return name
 
 
-class SchoolCreateForm(SchoolUpdateForm):
-    """新しい学校（学校ID）を登録するフォーム（部活動アカウントの作成画面で使う）"""
+class SchoolSportsForm(forms.ModelForm):
+    """顧問が、自校の対応競技を選ぶフォーム（学校名・所在地・連絡先は教育委員会が登録する）"""
 
-    class Meta(SchoolUpdateForm.Meta):
-        fields = ["name", "code", "address"]
-        error_messages = {"code": {"unique": "この学校IDはすでに使われています。"}}
+    class Meta:
+        model = School
+        fields = ["sports"]
+        widgets = {"sports": forms.CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["sports"].queryset = Sport.objects.order_by("name")
 
 
 class SchoolAddressForm(RequiredMessageMixin, SchoolLocationMixin, forms.ModelForm):

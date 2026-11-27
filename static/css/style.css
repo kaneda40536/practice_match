@@ -4668,3 +4668,18 @@ body.entry-page {
 .opponent-table .opponent-detail-button:hover {
     background: #dceaff;
 }
+
+.schedule-delete-button {
+    padding: 7px 14px;
+    background: #fff0f0;
+    color: #c0392b;
+    border: 1px solid #f2caca;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.schedule-delete-button:hover {
+    background: #ffe0e0;
+}

@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者専用ログイン｜練習試合調整支援システム</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="admin-login-page">
+
+    <main class="auth-container">
+
+        <!-- 左側：ブランドエリア -->
+        <section class="auth-left">
+            <p class="auth-en">
+                PRACTICE MATCH<br>
+                COORDINATION SYSTEM
+            </p>
+
+            <div class="auth-line"></div>
+
+            <div class="auth-brand">
+                <span>ADMINISTRATOR PORTAL</span>
+                <h1>
+                    練習試合調整<br>
+                    支援システム
+                </h1>
+                <p>管理者専用ログイン</p>
+            </div>
+
+            <span class="auth-number">ADMIN PORTAL / 02</span>
+        </section>
+
+        <!-- 右側：フォーム -->
+        <section class="auth-right">
+            <div class="auth-card">
+
+                <span class="auth-label">ADMIN ACCOUNT LOGIN</span>
+
+                <h2>管理者ログイン</h2>
+                <p class="auth-description">
+                    管理者IDとパスワードを入力してください。
+                </p>
+
+                {% for message in messages %}
+                    <p class="{% if message.tags == 'success' %}success-message{% else %}error-message{% endif %}">{{ message }}</p>
+                {% endfor %}
+                {% if error %}
+                    <p class="error-message">{{ error }}</p>
+                {% endif %}
+
+                <form method="post" action="{% url 'board_login' %}" novalidate>
+                    {% csrf_token %}
+                    {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+
+                    <div class="auth-form-group">
+                        <label for="account_id">管理者ID</label>
+                        <input type="text" id="account_id" name="account_id"
+                               placeholder="管理者IDを入力" value="{{ form.account_id.value|default:'' }}" autocomplete="username" autofocus required>
+                    </div>
+                    <div class="auth-form-group">
+                        <label for="password">パスワード</label>
+                        <input type="password" id="password" name="password"
+                               placeholder="パスワードを入力" autocomplete="current-password" required>
+                    </div>
+
+                    <button type="submit" class="auth-button">
+                        ログイン →
+                    </button>
+                </form>
+
+                <div class="auth-create">
+                    <p>学校の方はこちら</p>
+                    <a href="{% url 'entry' %}">← 最初の画面に戻る</a>
+                </div>
+
+                <span class="auth-footer">
+                    PRACTICE MATCH COORDINATION SYSTEM
+                </span>
+
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>

@@ -2,6 +2,8 @@ from datetime import timedelta
 
 from django.test import TestCase
 from django.urls import reverse
+
+from accounts.testing import make_school
 from django.utils import timezone
 
 from accounts.models import User
@@ -15,18 +17,18 @@ class MatchingFeatureTestBase(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.sport = Sport.objects.create(name="サッカー", icon="⚽")
-        cls.school_a = School.objects.create(name="A高校", code="a", address="札幌市", latitude=43.0, longitude=141.0)
-        cls.school_b = School.objects.create(name="B高校", code="b", address="札幌市", latitude=43.1, longitude=141.1)
-        cls.school_c = School.objects.create(name="C高校", code="c", address="札幌市", latitude=43.2, longitude=141.2)
+        cls.school_a = make_school(name="A高校", code="school_a", address="札幌市", latitude=43.0, longitude=141.0)
+        cls.school_b = make_school(name="B高校", code="school_b", address="札幌市", latitude=43.1, longitude=141.1)
+        cls.school_c = make_school(name="C高校", code="school_c", address="札幌市", latitude=43.2, longitude=141.2)
         cls.club_a = Club.objects.create(school=cls.school_a, sport=cls.sport, gender="male", code="soccer")
         cls.club_b = Club.objects.create(school=cls.school_b, sport=cls.sport, gender="male", code="soccer")
         cls.club_c = Club.objects.create(school=cls.school_c, sport=cls.sport, gender="male", code="soccer")
-        cls.user_a = User.objects.create_user(username="a", password="x", role="teacher", club=cls.club_a)
-        cls.user_b = User.objects.create_user(username="b", password="x", role="teacher", club=cls.club_b)
-        cls.user_c = User.objects.create_user(username="c", password="x", role="teacher", club=cls.club_c)
+        cls.user_a = User.objects.create_user(username="a", password="x", role="club", club=cls.club_a)
+        cls.user_b = User.objects.create_user(username="b", password="x", role="club", club=cls.club_b)
+        cls.user_c = User.objects.create_user(username="c", password="x", role="club", club=cls.club_c)
         # A高校の、別の部活動（女子サッカー部）。A高校の男子サッカー部の試合・メッセージは見られない
         cls.club_a2 = Club.objects.create(school=cls.school_a, sport=cls.sport, gender="female", code="soccer_f")
-        cls.user_a2 = User.objects.create_user(username="a2", password="x", role="teacher", club=cls.club_a2)
+        cls.user_a2 = User.objects.create_user(username="a2", password="x", role="club", club=cls.club_a2)
 
         cls.today = timezone.localdate()
         cls.past_match = PracticeMatch.objects.create(
@@ -325,6 +327,26 @@ class ConversationTest(MatchingFeatureTestBase):
 
 
 class ScheduleTest(MatchingFeatureTestBase):
+
+    def test_register_schedule_with_type_and_notes(self):
+        self.client.force_login(self.user_a)
+        url = reverse("club_availability", args=[self.club_a.pk])
+        day = self.today + timedelta(days=20)
+        response = self.client.post(url, {"date": day.isoformat(), "schedule_type": "受入可能日", "notes": "午後のみ"})
+        self.assertRedirects(response, url)
+        availability = Availability.objects.get(club=self.club_a, date=day)
+        self.assertEqual((availability.can_host, availability.notes, availability.schedule_type),
+                         (True, "午後のみ", "受入可能日"))
+        response = self.client.get(url)
+        self.assertContains(response, "午後のみ")
+        self.assertContains(response, "schedule-delete-button")
+
+        # 同じ日・過去の日は登録できない
+        response = self.client.post(url, {"date": day.isoformat(), "schedule_type": "希望日"})
+        self.assertContains(response, "この日はすでに登録されています。")
+        past = (self.today - timedelta(days=1)).isoformat()
+        response = self.client.post(url, {"date": past, "schedule_type": "希望日"})
+        self.assertContains(response, "過去の日付は登録できません。")
 
     def test_common_dates_and_apply_links(self):
         self.client.force_login(self.user_a)

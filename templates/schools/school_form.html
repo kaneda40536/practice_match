@@ -1,27 +1,70 @@
 {% extends "base.html" %}
 
-{% block title %}学校情報の編集｜練習試合調整支援システム{% endblock %}
+{% block title %}{% if object %}学校情報の編集{% else %}学校情報の登録{% endif %}｜練習試合調整支援システム{% endblock %}
 
 {% block heading %}学校情報管理{% endblock %}
 
 {% block content %}
 
-<div class="account-form-heading">
-    <h2>学校情報の編集</h2>
-    <p>「{{ object.name }}」の学校名と所在地を編集します。</p>
+<div class="welcome-area">
+    <h2>{% if object %}学校情報の編集{% else %}学校情報の登録{% endif %}</h2>
+    <p>
+        {% if object %}
+            登録済みの学校情報を変更します。
+        {% else %}
+            学校アカウント管理で作成した学校IDを指定して、学校の基本情報を登録します。
+        {% endif %}
+    </p>
 </div>
 
-<div class="account-form-card">
+<section class="card school-info-form">
+    {% if error %}
+        <div class="form-error">{{ error }}</div>
+    {% endif %}
+
     <form method="post" novalidate>
         {% csrf_token %}
 
-        {% include "_form_fields.html" with form=form %}
+        {% if not object %}
+            <div class="form-group">
+                <label for="account_id">学校ID</label>
+                <input type="text" id="account_id" name="account_id" required
+                       value="{{ form.account_id.value|default:'' }}">
+            </div>
+        {% else %}
+            <div class="form-group">
+                <label>学校ID</label>
+                <input type="text" value="{{ object.account.username }}" disabled>
+            </div>
+        {% endif %}
 
-        <div class="account-form-actions">
-            <a href="{% url 'school_list' %}" class="account-back-button">一覧に戻る</a>
-            <button type="submit" class="account-save-button">保存する</button>
+        <div class="form-group">
+            <label for="name">学校名</label>
+            <input type="text" id="name" name="name" placeholder="例：〇〇高等学校"
+                   value="{{ form.name.value|default:'' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="address">所在地</label>
+            <input type="text" id="address" name="address" placeholder="例：北海道札幌市..."
+                   value="{{ form.address.value|default:'' }}" required>
+            <p class="form-note">{{ form.address.help_text }}</p>
+        </div>
+
+        <div class="form-group">
+            <label for="phone">連絡先</label>
+            <input type="text" id="phone" name="phone" placeholder="例：011-000-0000"
+                   value="{{ form.phone.value|default:'' }}">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit">{% if object %}変更を保存する{% else %}登録する{% endif %}</button>
         </div>
     </form>
+</section>
+
+<div class="admin-back-area">
+    <a href="{% url 'school_list' %}" class="admin-back-link">← 学校情報一覧に戻る</a>
 </div>
 
 {% endblock %}

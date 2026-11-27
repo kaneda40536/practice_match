@@ -1,151 +1,329 @@
+"""ログイン・アカウント登録のフォーム
+
+画面（デザインの HTML）の入力欄の name に合わせて、項目名を付けている。
+  入口            ：account_id
+  管理者ログイン  ：account_id / password
+  学校側ログイン  ：school_id / club_id / password
+  顧問ログイン    ：school_id / name / password
+  顧問の新規登録  ：school_id / school_password / name / password / password_confirm
+  部活動の新規登録：school_id / login_id / password / password_confirm
+"""
 from django import forms
 from django.contrib.auth import authenticate
-from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.contrib.auth.password_validation import validate_password
-from django.db import transaction
 
 from config.form_messages import RequiredMessageMixin
-from schools.forms import ADDRESS_HELP, SchoolCreateForm
-from schools.models import Club, School, Sport
+from schools.models import Club, Sport, login_code_validator
 from .models import User
 
 
-class ClubLoginForm(RequiredMessageMixin, forms.Form):
-    """部活動アカウントのログイン（学校ID＋部活動ID＋パスワード）
+def check_new_password(form, user=None, name="password", confirm="password_confirm"):
+    """パスワードと確認用が一致し、パスワードの決まりを満たしているかを確かめる"""
+    password = form.cleaned_data.get(name)
+    password_confirm = form.cleaned_data.get(confirm)
+    if password and password_confirm:
+        if password != password_confirm:
+            form.add_error(confirm, "パスワードが一致しません。")
+        else:
+            try:
+                validate_password(password, user)
+            except forms.ValidationError as e:
+                form.add_error(name, e)
 
-    LoginView から使えるように、AuthenticationForm と同じ形（request を受け取り、
-    get_user() でログインするユーザーを返す）にしている。
-    """
 
-    school_code = forms.CharField(label="学校ID", max_length=30)
-    club_code = forms.CharField(label="部活動ID", max_length=30)
+def school_account_for(school_id):
+    """学校IDから、学校情報が登録されている学校アカウントを探す（なければ None）"""
+    return (
+        User.objects.filter(role=User.Role.SCHOOL, username=school_id, school_profile__isnull=False)
+        .select_related("school_profile").first()
+    )
+
+
+# ---------- ログイン ----------
+
+class LoginFormBase(RequiredMessageMixin, forms.Form):
+    """LoginView から使えるように、AuthenticationForm と同じ形（request を受け取り、
+    get_user() でログインするユーザーを返す）にしたログインフォームの土台"""
+
     password = forms.CharField(label="パスワード", strip=False, widget=forms.PasswordInput)
-
-    error_messages = {
-        "invalid_login": "学校ID・部活動ID・パスワードのいずれかが正しくありません。",
-        "inactive": "このアカウントは無効です。",
-    }
+    invalid_message = "入力内容が正しくありません。"
 
     def __init__(self, request=None, *args, **kwargs):
         self.request = request
         self.user_cache = None
         super().__init__(*args, **kwargs)
 
+    def find_account(self, cleaned):
+        """入力からログインするアカウントを探す（見つからなければ None）"""
+        raise NotImplementedError
+
     def clean(self):
-        school_code = self.cleaned_data.get("school_code", "").strip()
-        club_code = self.cleaned_data.get("club_code", "").strip()
-        password = self.cleaned_data.get("password")
-        if school_code and club_code and password:
-            account = User.objects.filter(
-                role=User.Role.TEACHER,
-                club__school__code=school_code, club__code=club_code,
-            ).first()
-            # アカウントが見つからなくてもパスワードの確認は行う（かかる時間で有無が分からないように）
-            self.user_cache = authenticate(
-                self.request, username=account.username if account else "", password=password)
-            if self.user_cache is None:
-                raise forms.ValidationError(self.error_messages["invalid_login"], code="invalid_login")
-        return self.cleaned_data
+        cleaned = super().clean()
+        if self.errors:
+            return cleaned
+        account = self.find_account(cleaned)
+        # アカウントが見つからなくてもパスワードの確認は行う（かかる時間で有無が分からないように）
+        user = authenticate(
+            self.request, username=account.username if account else "", password=cleaned["password"])
+        if user is None or not self.is_allowed(user):
+            raise forms.ValidationError(self.invalid_message, code="invalid_login")
+        self.user_cache = user
+        return cleaned
+
+    def is_allowed(self, user):
+        return True
 
     def get_user(self):
         return self.user_cache
 
 
-class BoardLoginForm(RequiredMessageMixin, AuthenticationForm):
-    """教育委員会（管理者）のログイン。部活動アカウントではログインできない"""
-
-    username = forms.CharField(label="管理者ID")
-
-    error_messages = {
-        "invalid_login": "管理者IDまたはパスワードが正しくありません。",
-        "inactive": "このアカウントは無効です。",
-    }
-
-    def confirm_login_allowed(self, user):
-        super().confirm_login_allowed(user)
-        if not (user.is_superuser or user.role == User.Role.BOARD):
-            raise forms.ValidationError(self.error_messages["invalid_login"], code="invalid_login")
+def school_is_active(school):
+    """学校アカウントが利用停止なら、その学校の顧問・部活動もログインできない"""
+    return school is not None and school.account.is_active
 
 
-def validate_new_password(form, user=None):
-    """password1 と password2 が一致し、パスワードの決まりを満たしているかを確かめる"""
-    cleaned = form.cleaned_data
-    password1 = cleaned.get("password1")
-    password2 = cleaned.get("password2")
-    if password1 and password2:
-        if password1 != password2:
-            form.add_error("password2", "パスワードが一致しません。")
+class BoardLoginForm(LoginFormBase):
+    """管理者ログイン（管理者ID＋パスワード）"""
+
+    account_id = forms.CharField(label="管理者ID", max_length=150)
+    field_order = ["account_id", "password"]
+    invalid_message = "管理者IDまたはパスワードが正しくありません。"
+
+    def find_account(self, cleaned):
+        return User.objects.filter(username=cleaned["account_id"].strip()).first()
+
+    def is_allowed(self, user):
+        return user.is_superuser or user.role == User.Role.BOARD
+
+
+class ClubLoginForm(LoginFormBase):
+    """学校側ログイン（学校ID＋部活ID＋パスワード）。部活動アカウントでログインする"""
+
+    school_id = forms.CharField(label="学校ID", max_length=150)
+    club_id = forms.CharField(label="部活ID", max_length=30)
+    field_order = ["school_id", "club_id", "password"]
+    invalid_message = "学校ID・部活ID・パスワードのいずれかが正しくありません。"
+
+    def find_account(self, cleaned):
+        return User.objects.filter(
+            role=User.Role.CLUB,
+            club__school__account__username=cleaned["school_id"].strip(),
+            club__code=cleaned["club_id"].strip(),
+        ).first()
+
+    def is_allowed(self, user):
+        return school_is_active(user.club.school)
+
+
+class AdvisorLoginForm(LoginFormBase):
+    """顧問ログイン（学校ID＋顧問名＋パスワード）"""
+
+    school_id = forms.CharField(label="学校ID", max_length=150)
+    name = forms.CharField(label="顧問名", max_length=100)
+    field_order = ["school_id", "name", "password"]
+    invalid_message = "学校ID・顧問名・パスワードのいずれかが正しくありません。"
+
+    def find_account(self, cleaned):
+        return User.objects.filter(
+            role=User.Role.TEACHER,
+            school__account__username=cleaned["school_id"].strip(),
+            advisor_name=cleaned["name"].strip(),
+        ).first()
+
+    def is_allowed(self, user):
+        return school_is_active(user.school)
+
+
+class EntryForm(RequiredMessageMixin, forms.Form):
+    """最初の画面：アカウントIDから、管理者ログインと学校側ログインのどちらに進むかを決める"""
+
+    account_id = forms.CharField(label="アカウントID", max_length=150)
+
+    def clean_account_id(self):
+        account_id = self.cleaned_data["account_id"].strip()
+        user = User.objects.filter(username=account_id).first()
+        if user and (user.is_superuser or user.role == User.Role.BOARD):
+            self.destination = "board"
+        elif school_account_for(account_id):
+            self.destination = "school"
         else:
-            try:
-                validate_password(password1, user)
-            except forms.ValidationError as e:
-                form.add_error("password1", e)
+            raise forms.ValidationError("このIDのアカウントは見つかりませんでした。管理者ID、または学校IDを入力してください。")
+        return account_id
 
 
-class ClubAccountCreateForm(RequiredMessageMixin, forms.ModelForm):
-    """教育委員会が、部活動（Club）と、その部活動のログインアカウント（User）を同時に作るフォーム。
+# ---------- 新規登録（ログインしていない人が使う） ----------
 
-    学校は、登録済みの学校から選ぶか、その場で新しい学校（学校名・学校ID・所在地）を登録する。
-    """
+class AdvisorRegisterForm(RequiredMessageMixin, forms.Form):
+    """顧問アカウントの新規登録。教育委員会から伝えられた学校IDと学校パスワードで確認する"""
 
-    new_school_name = forms.CharField(label="新しい学校の学校名", required=False, max_length=100)
-    new_school_code = forms.CharField(
-        label="新しい学校の学校ID", required=False, max_length=30,
-        help_text="ログイン時に入力するIDです。半角英数字で入力してください。")
-    new_school_address = forms.CharField(
-        label="新しい学校の所在地", required=False, max_length=200, help_text=ADDRESS_HELP)
-    password1 = forms.CharField(label="パスワード", widget=forms.PasswordInput)
-    password2 = forms.CharField(label="パスワード（確認）", widget=forms.PasswordInput)
-
-    field_order = [
-        "school", "new_school_name", "new_school_code", "new_school_address",
-        "sport", "gender", "code", "password1", "password2",
-    ]
-
-    class Meta:
-        model = Club
-        fields = ["school", "sport", "gender", "code"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.school_form = None
-        self.fields["school"].required = False
-        self.fields["school"].queryset = School.objects.order_by("name")
-        self.fields["school"].label_from_instance = lambda s: f"{s.name}（学校ID：{s.code}）"
-        self.fields["school"].empty_label = "＋ 新しい学校を登録する"
-        self.fields["school"].help_text = "登録済みの学校を選ぶか、「新しい学校を登録する」を選んで学校の情報を入力してください。"
-        self.fields["sport"].queryset = Sport.objects.order_by("name")
-        self.fields["sport"].label_from_instance = lambda s: f"{s.display_icon} {s.name}"
-        self.fields["sport"].empty_label = "競技を選択してください"
-        self.fields["gender"].choices = [("", "区分を選択してください")] + list(Club.Gender.choices)
+    school_id = forms.CharField(label="学校ID", max_length=150)
+    school_password = forms.CharField(label="学校パスワード", strip=False, widget=forms.PasswordInput)
+    name = forms.CharField(label="顧問名", max_length=100)
+    password = forms.CharField(label="パスワード", strip=False, widget=forms.PasswordInput)
+    password_confirm = forms.CharField(label="パスワード（確認）", strip=False, widget=forms.PasswordInput)
 
     def clean(self):
         cleaned = super().clean()
-        school = cleaned.get("school")
-        if school is None and "school" not in self.errors:
-            self.clean_new_school(cleaned)
-
-        sport = cleaned.get("sport")
-        gender = cleaned.get("gender")
-        code = cleaned.get("code")
-        if school and sport and gender and Club.objects.filter(
-                school=school, sport=sport, gender=gender).exists():
-            self.add_error(None, "この学校には、同じ競技・区分の部活動がすでに登録されています。")
-        if school and code and Club.objects.filter(school=school, code=code).exists():
-            self.add_error("code", "この部活動IDは、この学校ですでに使われています。")
-        validate_new_password(self)
+        school_id = cleaned.get("school_id", "").strip()
+        school_password = cleaned.get("school_password")
+        self.school = None
+        if school_id and school_password:
+            account = school_account_for(school_id)
+            if account is None or not account.is_active or not account.check_password(school_password):
+                self.add_error(None, "学校IDまたは学校パスワードが正しくありません。")
+            else:
+                self.school = account.school_profile
+        name = cleaned.get("name", "").strip()
+        if self.school and name and User.objects.filter(
+                role=User.Role.TEACHER, school=self.school, advisor_name=name).exists():
+            self.add_error("name", "この顧問名は、この学校ですでに登録されています。")
+        check_new_password(self, User(username=name, advisor_name=name))
         return cleaned
 
-    def clean_new_school(self, cleaned):
-        """新しい学校の入力を、学校の登録フォームで確かめる（住所から位置も求める）"""
-        self.school_form = SchoolCreateForm({
-            "name": cleaned.get("new_school_name", ""),
-            "code": cleaned.get("new_school_code", ""),
-            "address": cleaned.get("new_school_address", ""),
-        })
-        if not self.school_form.is_valid():
-            for name, errors in self.school_form.errors.items():
-                self.add_error(f"new_school_{name}" if name != "__all__" else None, errors)
+    def save(self):
+        return User.objects.create_user(
+            username=User.new_advisor_username(),
+            password=self.cleaned_data["password"],
+            role=User.Role.TEACHER,
+            school=self.school,
+            advisor_name=self.cleaned_data["name"].strip(),
+        )
+
+
+class ClubAccountRegisterForm(RequiredMessageMixin, forms.Form):
+    """部活動アカウントの新規登録。顧問が部活動管理で作った（学校ID・部活ID）を、一度だけ登録できる"""
+
+    school_id = forms.CharField(label="学校ID", max_length=150)
+    login_id = forms.CharField(label="部活ID", max_length=30)
+    password = forms.CharField(label="パスワード", strip=False, widget=forms.PasswordInput)
+    password_confirm = forms.CharField(label="パスワード（確認）", strip=False, widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned = super().clean()
+        school_id = cleaned.get("school_id", "").strip()
+        login_id = cleaned.get("login_id", "").strip()
+        self.club = None
+        if school_id and login_id:
+            club = Club.objects.filter(
+                school__account__username=school_id, code=login_id).select_related("school__account").first()
+            if club is None or not club.school.account.is_active:
+                self.add_error(None, "学校IDと部活IDの組み合わせが見つかりません。顧問に部活IDを確認してください。")
+            elif User.objects.filter(club=club).exists():
+                self.add_error(None, "この部活動のアカウントは、すでに登録されています。")
+            else:
+                self.club = club
+        check_new_password(self, User(username=login_id))
+        return cleaned
+
+    def save(self):
+        return User.objects.create_user(
+            username=User.username_for(self.club),
+            password=self.cleaned_data["password"],
+            role=User.Role.CLUB,
+            club=self.club,
+        )
+
+
+# ---------- 管理者が使うフォーム ----------
+
+class AccountIdPasswordForm(RequiredMessageMixin, forms.Form):
+    """ID＋パスワード（確認つき）のアカウントを作る・変えるフォームの土台（管理者・学校アカウント）
+
+    account を渡すと編集。編集のときは、パスワードが空欄なら変更しない。
+    """
+
+    account_id = forms.CharField(label="ID", max_length=150, validators=[login_code_validator])
+    password = forms.CharField(label="パスワード", strip=False, widget=forms.PasswordInput, required=False)
+    password_confirm = forms.CharField(
+        label="パスワード（確認）", strip=False, widget=forms.PasswordInput, required=False)
+    role = None
+    used_message = "このIDはすでに使われています。"
+
+    def __init__(self, *args, account=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.account = account
+        if account is None:
+            self.fields["password"].required = True
+            self.fields["password_confirm"].required = True
+            self.fields["password"].error_messages["required"] = "パスワードを入力してください。"
+            self.fields["password_confirm"].error_messages["required"] = "パスワード（確認）を入力してください。"
+        else:
+            self.initial.setdefault("account_id", account.username)
+
+    def clean_account_id(self):
+        account_id = self.cleaned_data["account_id"].strip()
+        others = User.objects.filter(username=account_id)
+        if self.account is not None:
+            others = others.exclude(pk=self.account.pk)
+        if others.exists():
+            raise forms.ValidationError(self.used_message)
+        return account_id
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("password") or cleaned.get("password_confirm") or self.account is None:
+            if cleaned.get("password") and not cleaned.get("password_confirm"):
+                self.add_error("password_confirm", "パスワード（確認）を入力してください。")
+            check_new_password(self, User(username=cleaned.get("account_id", "")))
+        return cleaned
+
+    def save(self):
+        account = self.account or User(role=self.role)
+        account.username = self.cleaned_data["account_id"]
+        if self.cleaned_data.get("password"):
+            account.set_password(self.cleaned_data["password"])
+        account.save()
+        return account
+
+
+class AdminAccountForm(AccountIdPasswordForm):
+    """管理者アカウントの新規作成（ログイン中の管理者だけが使える）"""
+    role = User.Role.BOARD
+    used_message = "この管理者IDはすでに使われています。"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["account_id"].label = "管理者ID"
+
+
+class SchoolAccountForm(AccountIdPasswordForm):
+    """学校アカウント（学校ID＋パスワード）の作成・編集"""
+    role = User.Role.SCHOOL
+    used_message = "この学校IDはすでに使われています。"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["account_id"].label = "学校ID"
+
+
+# ---------- 顧問が使うフォーム ----------
+
+class AdvisorClubForm(RequiredMessageMixin, forms.ModelForm):
+    """顧問が、自校の部活動（競技・男女区分・部活ID）を登録・編集するフォーム"""
+
+    class Meta:
+        model = Club
+        fields = ["sport", "gender", "code"]
+        labels = {"gender": "男女区分"}
+
+    def __init__(self, *args, school, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.school = school
+        self.instance.school = school
+        self.fields["sport"].queryset = Sport.objects.order_by("name")
+        self.fields["sport"].label_from_instance = lambda s: f"{s.display_icon} {s.name}"
+        self.fields["sport"].empty_label = "競技種目を選択してください"
+        self.fields["gender"].choices = [("", "男女区分を選択してください")] + list(Club.Gender.choices)
+
+    def clean(self):
+        cleaned = super().clean()
+        clubs = Club.objects.filter(school=self.school).exclude(pk=self.instance.pk)
+        sport, gender, code = cleaned.get("sport"), cleaned.get("gender"), cleaned.get("code")
+        if sport and gender and clubs.filter(sport=sport, gender=gender).exists():
+            self.add_error(None, "この競技・男女区分の部活動は、すでに登録されています。")
+        if code and clubs.filter(code=code).exists():
+            self.add_error("code", "この部活IDは、この学校ですでに使われています。")
+        return cleaned
 
     # 重なりの確認は clean() で分かりやすいメッセージにしているので、Django の確認は行わない
     def validate_unique(self):
@@ -154,19 +332,3 @@ class ClubAccountCreateForm(RequiredMessageMixin, forms.ModelForm):
     def validate_constraints(self):
         pass
 
-    @transaction.atomic
-    def save(self, commit=True):
-        club = super().save(commit=False)
-        if self.school_form is not None:
-            club.school = self.school_form.save()
-        club.save()
-        return User.objects.create_user(
-            username=User.username_for(club),
-            password=self.cleaned_data["password1"],
-            role=User.Role.TEACHER,
-            club=club,
-        )
-
-
-class ClubPasswordForm(RequiredMessageMixin, SetPasswordForm):
-    """教育委員会が、部活動アカウントのパスワードを再設定するフォーム"""

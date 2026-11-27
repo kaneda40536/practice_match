@@ -130,7 +130,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ログイン関連
-LOGIN_URL = "login"
+LOGIN_URL = "entry"
 
 # 送信の確認（CSRF）に失敗したとき、403 の画面ではなく案内を出す
 CSRF_FAILURE_VIEW = "accounts.views.csrf_failure"

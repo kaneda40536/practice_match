@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部活動アカウント新規登録｜練習試合調整支援システム</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="school-login">
+
+    <section class="school-login-brand">
+        <p>Practice Match Coordination System</p>
+        <h1>練習試合調整支援<br>システム</h1>
+    </section>
+
+    <main class="school-login-content">
+
+        <div class="page-title">
+            <h2>部活動アカウント新規登録</h2>
+            <p>学校ID・部活ID・パスワードを入力してください。部活IDは、顧問が部活動管理で決めたIDです。</p>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <h3>アカウント登録情報</h3>
+            </div>
+
+            <p class="login-en-title">ACCOUNT REGISTER</p>
+
+            {% for message in messages %}
+                    <p class="{% if message.tags == 'success' %}success-message{% else %}error-message{% endif %}">{{ message }}</p>
+                {% endfor %}
+                {% if error %}
+                    <p class="error-message">{{ error }}</p>
+                {% endif %}
+
+            <form method="post" action="{% url 'club_account_register' %}" class="school-login-form" novalidate>
+                {% csrf_token %}
+                {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+
+                    <div class="form-group">
+                        <label for="school_id">学校ID</label>
+                        <input type="text" id="school_id" name="school_id"
+                               placeholder="学校IDを入力" value="{{ form.school_id.value|default:'' }}" autocomplete="organization" autofocus required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login_id">部活ID</label>
+                        <input type="text" id="login_id" name="login_id"
+                               placeholder="顧問が決めた部活ID" value="{{ form.login_id.value|default:'' }}" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">パスワード</label>
+                        <input type="password" id="password" name="password"
+                               placeholder="8文字以上で入力" autocomplete="new-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password_confirm">パスワード（確認）</label>
+                        <input type="password" id="password_confirm" name="password_confirm"
+                               placeholder="もう一度入力" autocomplete="new-password" required>
+                    </div>
+
+                <button type="submit">アカウントを登録</button>
+            </form>
+
+            <div class="school-login-links">
+                    <a href="{% url 'login' %}">ログイン画面に戻る</a>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>

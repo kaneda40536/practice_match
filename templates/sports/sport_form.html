@@ -1,25 +1,40 @@
 {% extends "base.html" %}
 
-{% block title %}競技の登録｜練習試合調整支援システム{% endblock %}
+{% block title %}{% if object %}競技の編集{% else %}競技の登録{% endif %}｜練習試合調整支援システム{% endblock %}
 
 {% block heading %}競技管理{% endblock %}
 
 {% block content %}
 
 <div class="account-form-heading">
-    <h2>新しい競技の登録</h2>
-    <p>システムで使用する競技の情報を入力してください。</p>
+    <h2>競技情報の入力</h2>
+    <p>システムで使用する競技の情報を{% if object %}編集{% else %}登録{% endif %}します。</p>
 </div>
 
 <div class="account-form-card">
+    {% if error %}
+        <div class="account-form-error">{{ error }}</div>
+    {% endif %}
+
     <form method="post" novalidate>
         {% csrf_token %}
 
-        {% include "_form_fields.html" with form=form %}
+        <div class="account-form-group">
+            <label for="name">競技名</label>
+            <input type="text" id="name" name="name" value="{{ form.name.value|default:'' }}"
+                   placeholder="例：サッカー" required>
+        </div>
+
+        <div class="account-form-group">
+            <label for="icon">競技アイコン</label>
+            <input type="text" id="icon" name="icon" value="{{ form.icon.value|default:'' }}"
+                   placeholder="例：⚽" maxlength="20" required>
+            <small>競技に合った絵文字を入力してください。</small>
+        </div>
 
         <div class="account-form-actions">
             <a href="{% url 'sport_list' %}" class="account-back-button">キャンセル</a>
-            <button type="submit" class="account-save-button">登録する</button>
+            <button type="submit" class="account-save-button">保存する</button>
         </div>
     </form>
 </div>

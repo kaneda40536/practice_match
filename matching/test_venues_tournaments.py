@@ -7,6 +7,8 @@ from datetime import timedelta
 
 from django.test import TestCase
 from django.urls import reverse
+
+from accounts.testing import make_school
 from django.utils import timezone
 
 from accounts.models import User
@@ -83,19 +85,71 @@ class VenueTest(MatchingFeatureTestBase):
         self.assertFalse(PracticeMatch.objects.filter(status="pending").exists())
 
 
-class BoardVenueTest(MatchingFeatureTestBase):
-    """会場管理（教育委員会）"""
+class SchoolFacilityTest(MatchingFeatureTestBase):
+    """会場管理（顧問：学校内の施設）"""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.advisor_a = User.objects.create_user(
+            username="ta", password="x", role=User.Role.TEACHER, school=cls.school_a, advisor_name="A先生")
+        cls.advisor_b = User.objects.create_user(
+            username="tb", password="x", role=User.Role.TEACHER, school=cls.school_b, advisor_name="B先生")
+
+    def test_create_edit_delete(self):
+        self.client.force_login(self.advisor_a)
+        response = self.client.post(reverse("my_facility_list"), {"name": "", "sports": []})
+        self.assertContains(response, "会場名を入力してください。")
+        self.assertContains(response, "対応競技を1つ以上選択してください。")
+
+        response = self.client.post(reverse("my_facility_list"),
+                                    {"name": "第一体育館", "sports": [self.sport.pk]})
+        self.assertRedirects(response, reverse("my_facility_list"))
+        facility = Facility.objects.get(name="第一体育館")
+        self.assertEqual(facility.school, self.school_a)
+        self.assertEqual(facility.location, (43.0, 141.0))     # 位置は学校のもの
+
+        response = self.client.post(reverse("my_facility_list"),
+                                    {"name": "第一体育館", "sports": [self.sport.pk]})
+        self.assertContains(response, "同じ名前の会場がすでに登録されています。")
+
+        self.client.post(reverse("my_facility_edit", args=[facility.pk]),
+                         {"name": "第二体育館", "sports": [self.sport.pk]})
+        facility.refresh_from_db()
+        self.assertEqual(facility.name, "第二体育館")
+
+        # 他校の施設は、開くことも消すこともできない
+        self.client.force_login(self.advisor_b)
+        self.assertEqual(self.client.get(reverse("my_facility_edit", args=[facility.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse("my_facility_delete", args=[facility.pk])).status_code, 404)
+
+        self.client.force_login(self.advisor_a)
+        self.client.post(reverse("my_facility_delete", args=[facility.pk]))
+        self.assertFalse(Facility.objects.filter(pk=facility.pk).exists())
+
+    def test_used_facility_cannot_be_deleted(self):
+        facility = Facility.objects.create(school=self.school_a, name="体育館")
+        PracticeMatch.objects.create(applicant_club=self.club_a, opponent_club=self.club_b,
+                                     venue_kind="facility", facility=facility)
+        self.client.force_login(self.advisor_a)
+        response = self.client.post(reverse("my_facility_delete", args=[facility.pk]), follow=True)
+        self.assertContains(response, "練習試合の会場になっているため削除できません")
+
+    def test_club_account_cannot_open_facility_management(self):
+        self.client.force_login(self.user_a)
+        response = self.client.get(reverse("my_facility_list"), follow=True)
+        self.assertRedirects(response, reverse("teacher_home"))
 
     def test_board_venue_management(self):
-        """教育委員会の「会場管理」：公共の会場だけを管理する（学校の会場は一覧に出ない）"""
+        """教育委員会の「施設情報管理」：公共の施設だけを管理する（学校の会場は一覧に出ない）"""
         school_gym = Facility.objects.create(school=self.school_a, name="A高校体育館")
         public = Facility.objects.create(name="市民体育館", address="札幌市")
         board = User.objects.create_user(username="board", password="x", role=User.Role.BOARD)
         self.client.force_login(board)
 
         response = self.client.get(reverse("facility_list"))
-        self.assertContains(response, "<h1>会場管理</h1>", html=True)
-        self.assertContains(response, "新しい会場を登録")
+        self.assertContains(response, "<h1>施設情報管理</h1>", html=True)
+        self.assertContains(response, "新しい施設を登録")
         self.assertEqual(list(response.context["facilities"]), [public])            # 管理するのは公共の会場
         self.assertNotContains(response, "A高校体育館")
         self.assertNotContains(response, "学校内の会場")
@@ -106,9 +160,8 @@ class BoardVenueTest(MatchingFeatureTestBase):
         self.assertEqual(self.client.get(reverse("facility_edit", args=[school_gym.pk])).status_code, 404)
         self.assertEqual(self.client.get(reverse("facility_delete", args=[school_gym.pk])).status_code, 404)
 
-        # サイドバーの名前も「会場管理」
-        self.assertContains(response, "<span>会場管理</span>", html=True)
-        self.assertNotContains(response, "施設情報管理")
+        # サイドバーの名前も、デザインの「施設情報管理」
+        self.assertContains(response, "<span>施設情報管理</span>", html=True)
 
 
 class TournamentResultTest(MatchingFeatureTestBase):
@@ -164,7 +217,7 @@ class RecommendationTest(TestCase):
         cls.sport = Sport.objects.create(name="サッカー")
 
         def club(name, lat):
-            school = School.objects.create(
+            school = make_school(
                 name=name, code=f"s{lat}".replace(".", "_"), address="北海道", latitude=lat, longitude=141.0)
             return Club.objects.create(school=school, sport=cls.sport, gender="male", code="soccer")
 
@@ -174,7 +227,7 @@ class RecommendationTest(TestCase):
         cls.weak = club("弱い高校", 43.1)          # 地区大会に出場
         cls.district = club("地区優勝高校", 43.7)          # 地区大会で優勝（自校の都道府県ベスト8より下）
         cls.unknown = club("未登録高校", 43.3)      # 直近の成績なし
-        cls.user = User.objects.create_user(username="me", password="x", role="teacher", club=cls.mine)
+        cls.user = User.objects.create_user(username="me", password="x", role="club", club=cls.mine)
 
         def result(c, level, achievement, year=None):
             TournamentResult.objects.create(club=c, tournament_name="大会", fiscal_year=year or cls.year,

@@ -17,26 +17,46 @@ BOARD_SECTIONS = [
 ]
 
 BOARD_MENU = [
-    {"title": "部活動アカウント管理", "description": "学校・部活動アカウントの作成と、パスワード再設定・利用停止・削除",
+    {"title": "学校アカウント管理", "description": "学校アカウント（学校ID・パスワード）の作成・編集・利用状態の管理",
      "url_name": "school_account_list", "section": "main", "icon": "▣", "color": "blue",
-     "match_names": ["school_account_list", "school_account_add", "school_account_password",
+     "match_names": ["school_account_list", "school_account_add", "school_account_edit",
                      "school_account_toggle", "school_account_delete"]},
-    {"title": "学校情報管理", "description": "各学校の基本情報（学校名・所在地）の確認・編集",
+    {"title": "学校情報管理", "description": "各学校の基本情報（学校名・所在地・連絡先）の登録・編集・削除",
      "url_name": "school_list", "section": "main", "icon": "▤", "color": "green",
-     "match_names": ["school_list", "school_edit"]},
+     "match_names": ["school_list", "school_add", "school_edit", "school_delete"]},
     {"title": "競技管理", "description": "システムで使用する競技の種類を管理",
      "url_name": "sport_list", "section": "main", "icon": "⚽", "color": "orange",
      "match_names": ["sport_list", "sport_add", "sport_delete"]},
     {"title": "部活動一覧", "description": "各学校が登録した部活動を確認",
      "url_name": "club_list", "section": "main", "icon": "▦", "color": "purple",
      "match_names": ["club_list"]},
-    {"title": "会場管理", "description": "練習試合の会場（公共の施設）を登録・管理し、学校内の会場を確認",
+    {"title": "施設情報管理", "description": "練習試合で利用する公共の施設を登録・管理",
      "url_name": "facility_list", "section": "main", "icon": "⌖", "color": "teal",
      "match_names": ["facility_list", "facility_add", "facility_edit", "facility_delete"]},
 ]
 
 
-# ---------- 顧問（学校）側 ----------
+# ---------- 顧問側 ----------
+
+ADVISOR_SECTIONS = [
+    {"key": "school", "label": "MAIN MENU",
+     "title": "学校情報管理", "description": "学校や部活動に関する情報を管理します。"},
+]
+
+ADVISOR_MENU = [
+    {"title": "学校情報管理", "description": "自校の基本情報を確認し、対応競技を登録",
+     "url_name": "advisor_school", "section": "school", "icon": "▣", "color": "blue",
+     "match_names": ["advisor_school"]},
+    {"title": "部活動管理", "description": "自校の部活動（競技・男女区分・部活ID）を登録・編集・削除",
+     "url_name": "advisor_club_list", "section": "school", "icon": "▤", "color": "green",
+     "match_names": ["advisor_club_list", "advisor_club_edit"]},
+    {"title": "会場管理", "description": "自校の施設（体育館・グラウンドなど）を登録・編集・削除",
+     "url_name": "my_facility_list", "section": "school", "icon": "▦", "color": "orange",
+     "match_names": ["my_facility_list", "my_facility_edit"]},
+]
+
+
+# ---------- 部活動側 ----------
 
 TEACHER_SECTIONS = [
     {"key": "school", "label": "MAIN MENU",
@@ -52,7 +72,7 @@ TEACHER_MENU = [
      "url_name": "my_school", "section": "school", "icon": "▣", "color": "blue",
      "match_names": ["my_school"]},
     {"title": "大会成績管理", "description": "自分の部活動の過去の大会成績を登録・変更・削除",
-     "url_name": "tournament_results", "section": "school", "icon": "🏆", "color": "orange",
+     "url_name": "tournament_results", "section": "school", "icon": "♜", "color": "orange",
      "match_names": ["tournament_results", "tournament_result_edit"]},
 
     {"title": "対戦相手検索", "description": "希望のレベルや日程に合う相手校を、おすすめ順に検索",

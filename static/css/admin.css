@@ -2314,3 +2314,62 @@ textarea:focus {
     font-weight: 700;
 }
 
+/* 競技レベルの判定表示 */
+.opponent-level.higher {
+    background: #fde8e8;
+    color: #c0392b;
+}
+
+.opponent-level.equal {
+    background: #e4f4e8;
+    color: #258044;
+}
+
+.opponent-level.lower {
+    background: #e5efff;
+    color: #2865b0;
+}
+
+/* ========================================
+   管理者アカウント新規作成画面の調整
+======================================== */
+
+.admin-account-create-page .auth-card {
+    padding: 32px 40px;
+}
+
+.admin-account-create-page .auth-label {
+    margin-bottom: 14px;
+}
+
+.admin-account-create-page .auth-card h2 {
+    font-size: 23px;
+    margin-bottom: 10px;
+}
+
+.admin-account-create-page .auth-description {
+    margin-bottom: 24px;
+}
+
+.admin-account-create-page .auth-form-group {
+    margin-bottom: 16px;
+}
+
+.admin-account-create-page .auth-form-group input {
+    padding: 12px 14px;
+}
+
+.admin-account-create-page .auth-button {
+    margin-top: 5px;
+    padding: 13px;
+}
+
+.admin-account-create-page .auth-create {
+    margin-top: 20px;
+    padding-top: 16px;
+}
+
+.admin-account-create-page .auth-footer {
+    margin-top: 20px;
+}
+

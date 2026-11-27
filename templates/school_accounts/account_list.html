@@ -1,102 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}部活動アカウント管理｜練習試合調整支援システム{% endblock %}
+{% block title %}学校アカウント管理｜練習試合調整支援システム{% endblock %}
 
-{% block heading %}部活動アカウント管理{% endblock %}
+{% block heading %}学校アカウント管理{% endblock %}
 
 {% block content %}
 
 <div class="welcome-area">
-    <div>
-        <h2>部活動アカウント一覧</h2>
-        <p>部活動アカウント（新しい学校の登録も含む）の作成と、パスワードの再設定・利用停止・削除を行います。ログインには、学校ID・部活動ID・パスワードを使います。</p>
-    </div>
+    <h2>学校アカウント一覧</h2>
+    <p>学校アカウントの作成・編集・利用状態の管理を行います。学校IDとパスワードは、顧問アカウントの登録に使います。</p>
 </div>
 
 <div class="account-summary">
     <div>
         <span class="summary-label">REGISTERED ACCOUNTS</span>
         <div class="summary-number">
-            {{ account_count }}
+            {{ accounts|length }}
             <span>件</span>
         </div>
     </div>
+
     <a href="{% url 'school_account_add' %}" class="admin-primary-button">
         <span>＋</span>
-        新しい部活動アカウントを作成
+        新しい学校アカウントを作成
     </a>
 </div>
 
 <div class="admin-table-card">
     <div class="table-card-header">
         <div>
-            <h3>登録済み部活動アカウント</h3>
-            <p>学校ごとにまとめて表示しています。利用停止にしたアカウントでは、ログインできなくなります。</p>
+            <h3>登録済み学校アカウント</h3>
+            <p>利用停止にすると、その学校の顧問・部活動もログインできなくなります。</p>
         </div>
     </div>
 
     <div class="admin-table-wrap">
-        <table class="admin-data-table school-account-table">
+        <table class="admin-data-table">
             <thead>
                 <tr>
                     <th>学校名</th>
                     <th>学校ID</th>
-                    <th>部活動名</th>
-                    <th>部活動ID</th>
+                    <th>パスワード</th>
                     <th>利用状態</th>
                     <th>操作</th>
                 </tr>
             </thead>
-            {% for school in schools %}
-                <tbody class="school-account-group">
-                    {% for club in school.account_clubs %}
-                        {% with account=club.account %}
-                            <tr>
-                                {% if forloop.first %}
-                                    <td rowspan="{{ school.account_clubs|length }}" class="school-account-school">{{ school.name }}</td>
-                                    <td rowspan="{{ school.account_clubs|length }}" class="school-account-school"><span class="account-id">{{ school.code }}</span></td>
-                                {% endif %}
-                                <td>{{ club.sport.display_icon }} {{ club.name }}</td>
-                                <td><span class="account-id">{{ club.code }}</span></td>
-                                <td>
-                                    {% if account.is_active %}
-                                        <span class="status-label status-active">● 利用中</span>
-                                    {% else %}
-                                        <span class="status-label status-inactive">● 利用停止中</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="table-actions">
-                                        <a href="{% url 'school_account_password' account.pk %}" class="admin-edit-button">パスワード再設定</a>
-                                        <form method="post" action="{% url 'school_account_toggle' account.pk %}"
-                                              onsubmit="return confirm('{% if account.is_active %}このアカウントを利用停止にしますか？{% else %}このアカウントの利用を再開しますか？{% endif %}');">
-                                            {% csrf_token %}
-                                            {% if account.is_active %}
-                                                <button type="submit" class="admin-stop-button">利用停止</button>
-                                            {% else %}
-                                                <button type="submit" class="admin-resume-button">利用再開</button>
-                                            {% endif %}
-                                        </form>
-                                        <a href="{% url 'school_account_delete' account.pk %}" class="admin-stop-button">削除</a>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endwith %}
-                    {% empty %}
-                        <tr>
-                            <td class="school-account-school">{{ school.name }}</td>
-                            <td class="school-account-school"><span class="account-id">{{ school.code }}</span></td>
-                            <td colspan="4" class="unregistered">部活動アカウントはありません</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            {% empty %}
-                <tbody>
+            <tbody>
+                {% for account in accounts %}
                     <tr>
-                        <td colspan="6" class="empty-message">部活動アカウントはまだ登録されていません。「新しい部活動アカウントを作成」から作成してください。</td>
+                        <td>
+                            {% if account.school_profile %}
+                                {{ account.school_profile.name }}
+                            {% else %}
+                                <span class="account-password-mask">未登録</span>
+                                <a href="{% url 'school_add' %}?account_id={{ account.username|urlencode }}" class="map-link">学校情報を登録</a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="account-id">{{ account.username }}</span>
+                        </td>
+                        <td>
+                            <span class="account-password-mask">{% if account.has_usable_password %}••••••••{% else %}未設定{% endif %}</span>
+                        </td>
+                        <td>
+                            {% if account.is_active %}
+                                <span class="status-label status-active">● 利用中</span>
+                            {% else %}
+                                <span class="status-label status-inactive">● 利用停止中</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'school_account_edit' account.pk %}" class="admin-edit-button">編集</a>
+                                <a href="{% url 'school_account_toggle' account.pk %}"
+                                   class="{% if account.is_active %}admin-stop-button{% else %}admin-resume-button{% endif %}">
+                                    {% if account.is_active %}利用停止{% else %}利用再開{% endif %}
+                                </a>
+                                <a href="{% url 'school_account_delete' account.pk %}" class="admin-stop-button">削除</a>
+                            </div>
+                        </td>
                     </tr>
-                </tbody>
-            {% endfor %}
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-message">学校アカウントはまだ登録されていません。</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>
